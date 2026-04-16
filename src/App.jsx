@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 /* ───────────────────── icon map for nav ───────────────────── */
 const NAV_ICONS = {
@@ -34,25 +34,21 @@ const CATEGORY_ICONS = {
 
 const CATEGORY_LIST = Object.keys(CATEGORY_ICONS);
 
-/* ───────── India timezone helper ───────── */
-const getISTTime = () => {
-    return new Date().toLocaleTimeString('en-US', {
-        timeZone: 'Asia/Kolkata',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-    });
+/* ───────── India timezone helpers ───────── */
+const getISTTime = () => new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+const getISTTimeFull = () => new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+const getISTDate = () => new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const getISTShortDate = () => new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
+const getISTNow = () => {
+    const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate(), weekday: d.getDay(), hours: d.getHours(), minutes: d.getMinutes() };
 };
 
-const getISTDate = () => {
-    return new Date().toLocaleDateString('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
-};
+/* ───────── calendar helpers ───────── */
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+const getFirstDayOfMonth = (y, m) => new Date(y, m, 1).getDay();
 
 /* ───────── fake daily routine data ───────── */
 const DAILY_TASKS = [
@@ -86,6 +82,23 @@ export default function App() {
     const [isAddGoalModalOpen, setIsAddGoalModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [newGoalForm, setNewGoalForm] = useState({ name: '', startDate: '', dueDate: '', target: '', description: '' });
+
+    /* live clock */
+    const [liveClock, setLiveClock] = useState(getISTTimeFull());
+    const [liveDate, setLiveDate] = useState(getISTDate());
+    useEffect(() => {
+        const timer = setInterval(() => { setLiveClock(getISTTimeFull()); setLiveDate(getISTDate()); }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    /* calendar state */
+    const istNow = getISTNow();
+    const [calMonth, setCalMonth] = useState(istNow.month);
+    const [calYear, setCalYear] = useState(istNow.year);
+    const calDays = getDaysInMonth(calYear, calMonth);
+    const calStart = getFirstDayOfMonth(calYear, calMonth);
+    const calPrev = () => { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); } else setCalMonth(calMonth - 1); };
+    const calNext = () => { if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); } else setCalMonth(calMonth + 1); };
 
     /* routine state */
     const [dailyTasks, setDailyTasks] = useState(DAILY_TASKS);
@@ -226,10 +239,11 @@ export default function App() {
     /* ════════════════════ PAGE RENDERERS ════════════════════ */
 
     /* ─── Goal Timeline ─── */
-    const renderGoalTimeline = () => (
-        <>
             <div className="flex justify-between items-center px-12 py-10 border-b border-gray-100">
-                <h1 className="text-4xl tracking-tight font-normal">Goal Timeline</h1>
+                <div>
+                    <h1 className="text-4xl tracking-tight font-normal">Goal Timeline</h1>
+                    <p className="text-sm text-gray-400 mt-1">{liveDate}</p>
+                </div>
                 <div className="flex items-center gap-6">
                     <div className="relative">
                         <iconify-icon icon="solar:magnifer-linear" width="18" height="18" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></iconify-icon>
@@ -321,7 +335,7 @@ export default function App() {
                 <div className="flex justify-between items-center px-12 py-10 border-b border-gray-100">
                     <div>
                         <h1 className="text-4xl tracking-tight font-normal">Daily Routine</h1>
-                        <p className="text-sm text-gray-400 mt-1">{getISTDate()} · <span className="text-[#bef445] font-medium">{getISTTime()} IST</span></p>
+                        <p className="text-sm text-gray-400 mt-1">{liveDate} · <span className="text-[#bef445] font-medium">{liveClock} IST</span></p>
                     </div>
                     <div className="flex items-center gap-5">
                         <div className="text-right">
@@ -430,7 +444,7 @@ export default function App() {
                 {/* Header — matches the Goal Timeline style */}
                 <div className="flex justify-between items-center px-12 py-10 border-b border-gray-100">
                     <h1 className="text-4xl tracking-tight font-normal">Report</h1>
-                    <div className="text-sm text-gray-400">{getISTDate()}</div>
+                    <div className="text-sm text-gray-400">{liveDate}</div>
                 </div>
 
                 {/* Stats row — same style as Goal Timeline stats */}
@@ -653,7 +667,7 @@ export default function App() {
                             <iconify-icon icon="solar:arrow-left-linear" width="16" height="16"></iconify-icon> Back to Timeline
                         </button>
                         <h1 className="text-4xl tracking-tight font-normal">Strategy Planner</h1>
-                        <p className="text-sm text-gray-400 mt-1">Planning breakdown for <span className="text-gray-700 font-medium">{plan.goalTitle}</span></p>
+                        <p className="text-sm text-gray-400 mt-1">{liveDate} · Planning for <span className="text-gray-700 font-medium">{plan.goalTitle}</span></p>
                     </div>
                     <div className="flex items-center gap-5">
                         <div className="text-right">
@@ -829,17 +843,15 @@ export default function App() {
                                 <div>
                                     <label className="text-xs text-gray-400 block mb-2">Start date</label>
                                     <div className="border-b border-gray-200 pb-2 flex justify-between items-center">
-                                        <input type="text" placeholder="30 Oct, 2022" value={newGoalForm.startDate} onChange={(e) => setNewGoalForm({ ...newGoalForm, startDate: e.target.value })}
-                                            className="w-full text-sm outline-none placeholder-gray-300 text-gray-900" />
-                                        <iconify-icon icon="solar:calendar-linear" width="16" height="16" className="text-gray-400"></iconify-icon>
+                                        <input type="date" value={newGoalForm.startDate} onChange={(e) => setNewGoalForm({ ...newGoalForm, startDate: e.target.value })}
+                                            className="w-full text-sm outline-none placeholder-gray-300 text-gray-900 bg-transparent cursor-pointer" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-400 block mb-2">Due Date</label>
                                     <div className="border-b border-gray-200 pb-2 flex justify-between items-center">
-                                        <input type="text" placeholder="25 Dec, 2022" value={newGoalForm.dueDate} onChange={(e) => setNewGoalForm({ ...newGoalForm, dueDate: e.target.value })}
-                                            className="w-full text-sm outline-none placeholder-gray-300 text-gray-900" />
-                                        <iconify-icon icon="solar:calendar-linear" width="16" height="16" className="text-gray-400"></iconify-icon>
+                                        <input type="date" value={newGoalForm.dueDate} onChange={(e) => setNewGoalForm({ ...newGoalForm, dueDate: e.target.value })}
+                                            className="w-full text-sm outline-none placeholder-gray-300 text-gray-900 bg-transparent cursor-pointer" />
                                     </div>
                                 </div>
                             </div>
@@ -905,10 +917,9 @@ export default function App() {
                                 <div>
                                     <label className="text-xs text-gray-400 block mb-2">Time (AM/PM IST)</label>
                                     <div className="border-b border-gray-200 pb-2 flex justify-between items-center">
-                                        <input type="text" value={editingTask.time} placeholder="09:00 AM"
+                                        <input type="time" value={editingTask.time}
                                             onChange={(e) => setEditingTask({ ...editingTask, time: e.target.value })}
-                                            className="w-full text-sm outline-none text-gray-900" />
-                                        <iconify-icon icon="solar:clock-circle-linear" width="16" height="16" className="text-gray-400"></iconify-icon>
+                                            className="w-full text-sm outline-none text-gray-900 bg-transparent cursor-pointer" />
                                     </div>
                                 </div>
                                 <div>
@@ -994,12 +1005,10 @@ export default function App() {
                             </div>
                             <div className="grid grid-cols-2 gap-8">
                                 <div>
-                                    <label className="text-xs text-gray-400 block mb-2">Time (AM/PM IST)</label>
+                                    <label className="text-xs text-gray-400 block mb-2">Time</label>
                                     <div className="border-b border-gray-200 pb-2 flex justify-between items-center">
-                                        <input type="text" placeholder={getISTTime()} value={newTaskForm.time}
-                                            onChange={(e) => setNewTaskForm({ ...newTaskForm, time: e.target.value })}
-                                            className="w-full text-sm outline-none placeholder-gray-300 text-gray-900" />
-                                        <iconify-icon icon="solar:clock-circle-linear" width="16" height="16" className="text-gray-400"></iconify-icon>
+                                        <input type="time" value={newTaskForm.time} onChange={(e) => setNewTaskForm({ ...newTaskForm, time: e.target.value })}
+                                            className="w-full text-sm outline-none text-gray-900 bg-transparent cursor-pointer" />
                                     </div>
                                 </div>
                                 <div>
@@ -1152,9 +1161,56 @@ export default function App() {
             )}
 
             {/* ─── Left Sidebar ─── */}
-            <div className="w-[280px] flex-shrink-0 flex flex-col justify-between pt-16 pb-8 px-6">
+            <div className="w-[280px] flex-shrink-0 flex flex-col justify-between pt-10 pb-6 px-6 overflow-y-auto">
                 <div>
-                    <div className="text-xl tracking-tight font-semibold mb-12 px-4">KEEPSGOAL</div>
+                    <div className="text-xl tracking-tight font-semibold mb-8 px-4">KEEPSGOAL</div>
+
+                    {/* Live clock widget */}
+                    <div className="mx-4 mb-6 bg-[#1b1b1b] rounded-2xl p-4 text-white">
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                                <iconify-icon icon="solar:clock-circle-linear" width="14" height="14" className="text-[#bef445]"></iconify-icon>
+                                <span className="text-[10px] uppercase tracking-widest text-gray-400">IST Live</span>
+                            </div>
+                            <div className="w-2 h-2 rounded-full bg-[#bef445] animate-pulse"></div>
+                        </div>
+                        <div className="text-2xl font-semibold tracking-tight font-mono">{liveClock}</div>
+                        <div className="text-xs text-gray-400 mt-1">{liveDate}</div>
+                    </div>
+
+                    {/* Mini Calendar */}
+                    <div className="mx-4 mb-6 bg-white/60 rounded-2xl p-4 border border-gray-200/50">
+                        <div className="flex items-center justify-between mb-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                            <span>Calendar</span>
+                            <button onClick={() => { setCalMonth(istNow.month); setCalYear(istNow.year); }}
+                                className="text-[10px] bg-[#bef445]/20 text-[#719229] px-2 py-0.5 rounded-md hover:bg-[#bef445]/30 transition-colors">
+                                Today
+                            </button>
+                        </div>
+                        <div className="flex items-center justify-between mb-3">
+                            <button onClick={calPrev} className="text-gray-400 hover:text-gray-700 transition-colors p-1">
+                                <iconify-icon icon="solar:alt-arrow-left-linear" width="16" height="16"></iconify-icon>
+                            </button>
+                            <span className="text-xs font-semibold text-gray-700">{MONTH_NAMES[calMonth]} {calYear}</span>
+                            <button onClick={calNext} className="text-gray-400 hover:text-gray-700 transition-colors p-1">
+                                <iconify-icon icon="solar:alt-arrow-right-linear" width="16" height="16"></iconify-icon>
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-7 gap-0">
+                            {DAY_LABELS.map(d => <div key={d} className="text-[9px] text-gray-400 text-center py-1 font-medium">{d}</div>)}
+                            {Array.from({ length: calStart }).map((_, i) => <div key={'e' + i}></div>)}
+                            {Array.from({ length: calDays }).map((_, i) => {
+                                const day = i + 1;
+                                const isToday = day === istNow.day && calMonth === istNow.month && calYear === istNow.year;
+                                return (
+                                    <div key={day} className={`text-[11px] text-center py-1 rounded-lg cursor-default transition-colors ${
+                                        isToday ? 'bg-[#bef445] text-gray-900 font-bold' : 'text-gray-600 hover:bg-gray-100'
+                                    }`}>{day}</div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     <nav className="space-y-1">
                         {navLinks.map((label) => (
                             <a key={label} href="#" onClick={(e) => { e.preventDefault(); handleNavClick(label); }}
@@ -1165,10 +1221,13 @@ export default function App() {
                         ))}
                     </nav>
                 </div>
-                <div className="space-y-6 px-4">
+                <div className="space-y-6 px-4 mt-6">
                     <div className="flex items-center gap-3">
                         <img src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="User" className="w-8 h-8 rounded-full bg-gray-200 object-cover" />
-                        <span className="text-sm font-medium">{settingsForm.name}</span>
+                        <div>
+                            <span className="text-sm font-medium block">{settingsForm.name}</span>
+                            <span className="text-[10px] text-gray-400">{getISTShortDate()}</span>
+                        </div>
                     </div>
                     <button onClick={() => setIsSettingsOpen(true)} className="flex items-center gap-3 text-gray-500 hover:text-gray-900 transition-colors">
                         <iconify-icon icon="solar:settings-linear" width="20" height="20"></iconify-icon>
