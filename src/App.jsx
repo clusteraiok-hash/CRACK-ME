@@ -93,6 +93,35 @@ export default function App() {
     const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
     const [newTaskForm, setNewTaskForm] = useState({ title: '', time: '', category: 'Work', note: '' });
 
+    /* strategy planner */
+    const [planningGoal, setPlanningGoal] = useState(null);
+    const [strategyPlans, setStrategyPlans] = useState([
+        {
+            goalId: 2, goalTitle: 'Android Studio Course', phases: [
+                { id: 'p1', name: 'Foundation', timeframe: 'Week 1-2', status: 'done', milestones: [
+                    { text: 'Install Android Studio & configure SDK', done: true },
+                    { text: 'Complete Kotlin basics tutorial', done: true },
+                    { text: 'Build first Hello World app', done: true },
+                ], keyActions: 'Complete 2 hrs daily study sessions', risks: 'Setup issues on older hardware' },
+                { id: 'p2', name: 'Core Concepts', timeframe: 'Week 3-4', status: 'active', milestones: [
+                    { text: 'Learn Activity lifecycle', done: true },
+                    { text: 'Master RecyclerView & Adapters', done: false },
+                    { text: 'Implement Navigation component', done: false },
+                ], keyActions: 'Build 1 mini-project per concept', risks: 'Complexity jump from basics' },
+                { id: 'p3', name: 'Intermediate Projects', timeframe: 'Week 5-7', status: 'upcoming', milestones: [
+                    { text: 'Build a To-Do app with Room DB', done: false },
+                    { text: 'Integrate REST API with Retrofit', done: false },
+                    { text: 'Add authentication with Firebase', done: false },
+                ], keyActions: 'Complete full project each week', risks: 'API integration debugging' },
+                { id: 'p4', name: 'Final Capstone', timeframe: 'Week 8', status: 'upcoming', milestones: [
+                    { text: 'Design capstone app UI', done: false },
+                    { text: 'Implement all features', done: false },
+                    { text: 'Test & deploy to Play Store', done: false },
+                ], keyActions: 'Full-time development sprint', risks: 'Scope creep - keep MVP focused' },
+            ]
+        }
+    ]);
+
     /* help center accordion */
     const [openFaq, setOpenFaq] = useState(null);
 
@@ -117,7 +146,7 @@ export default function App() {
     const filteredDone = useMemo(() => doneGoals.filter(g => g.title.toLowerCase().includes(searchQuery.toLowerCase())), [doneGoals, searchQuery]);
 
     /* ─── handlers ─── */
-    const handleAddGoalSubmit = () => {
+    const handleAddGoalSubmit = (openPlanner) => {
         const icons = ['solar:target-linear', 'solar:star-linear', 'solar:flag-linear', 'solar:rocket-2-linear', 'solar:cup-star-linear'];
         const newEntry = {
             id: Date.now(), time: getISTTime(), icon: icons[Math.floor(Math.random() * icons.length)],
@@ -128,6 +157,16 @@ export default function App() {
         setOnProgressGoals([newEntry, ...onProgressGoals]);
         setIsAddGoalModalOpen(false);
         setNewGoalForm({ name: '', startDate: '', dueDate: '', target: '', description: '' });
+        if (openPlanner) {
+            const newPlan = { goalId: newEntry.id, goalTitle: newEntry.title, phases: [
+                { id: 'np1', name: 'Phase 1 — Research & Planning', timeframe: 'Week 1', status: 'active', milestones: [{ text: 'Define clear objectives', done: false }, { text: 'Research best approaches', done: false }], keyActions: 'Brainstorm, gather resources', risks: 'Unclear requirements' },
+                { id: 'np2', name: 'Phase 2 — Execution', timeframe: 'Week 2-3', status: 'upcoming', milestones: [{ text: 'Start core work', done: false }, { text: 'Track daily progress', done: false }], keyActions: 'Daily focused work sessions', risks: 'Losing momentum' },
+                { id: 'np3', name: 'Phase 3 — Review & Complete', timeframe: 'Week 4', status: 'upcoming', milestones: [{ text: 'Review results', done: false }, { text: 'Final adjustments', done: false }], keyActions: 'Evaluate and iterate', risks: 'Last-minute changes' },
+            ]};
+            setStrategyPlans([...strategyPlans, newPlan]);
+            setPlanningGoal(newPlan);
+            setActivePage('Strategy Planner');
+        }
     };
 
     const handleMarkDone = (goalId) => {
@@ -554,6 +593,203 @@ export default function App() {
         </>
     );
 
+    /* ─── Strategy Planner Page ─── */
+    const renderStrategyPlanner = () => {
+        if (!planningGoal) return <div className="px-12 py-10"><p className="text-gray-400">No goal selected for planning.</p></div>;
+        const plan = planningGoal;
+        const totalMilestones = plan.phases.reduce((a, p) => a + p.milestones.length, 0);
+        const doneMilestones = plan.phases.reduce((a, p) => a + p.milestones.filter(m => m.done).length, 0);
+        const overallPct = totalMilestones > 0 ? Math.round((doneMilestones / totalMilestones) * 100) : 0;
+
+        const togglePlanMilestone = (phaseId, mIdx) => {
+            const updated = { ...plan, phases: plan.phases.map(p => {
+                if (p.id !== phaseId) return p;
+                return { ...p, milestones: p.milestones.map((m, i) => i === mIdx ? { ...m, done: !m.done } : m) };
+            })};
+            setPlanningGoal(updated);
+            setStrategyPlans(strategyPlans.map(sp => sp.goalId === updated.goalId ? updated : sp));
+        };
+
+        const addPhase = () => {
+            const newPhase = { id: 'ph' + Date.now(), name: 'New Phase', timeframe: 'TBD', status: 'upcoming', milestones: [{ text: 'Define milestone', done: false }], keyActions: '', risks: '' };
+            const updated = { ...plan, phases: [...plan.phases, newPhase] };
+            setPlanningGoal(updated);
+            setStrategyPlans(strategyPlans.map(sp => sp.goalId === updated.goalId ? updated : sp));
+        };
+
+        const updatePhaseField = (phaseId, field, value) => {
+            const updated = { ...plan, phases: plan.phases.map(p => p.id === phaseId ? { ...p, [field]: value } : p) };
+            setPlanningGoal(updated);
+            setStrategyPlans(strategyPlans.map(sp => sp.goalId === updated.goalId ? updated : sp));
+        };
+
+        const addMilestone = (phaseId) => {
+            const updated = { ...plan, phases: plan.phases.map(p => p.id === phaseId ? { ...p, milestones: [...p.milestones, { text: '', done: false }] } : p) };
+            setPlanningGoal(updated);
+            setStrategyPlans(strategyPlans.map(sp => sp.goalId === updated.goalId ? updated : sp));
+        };
+
+        const updateMilestoneText = (phaseId, mIdx, text) => {
+            const updated = { ...plan, phases: plan.phases.map(p => p.id !== phaseId ? p : { ...p, milestones: p.milestones.map((m, i) => i === mIdx ? { ...m, text } : m) }) };
+            setPlanningGoal(updated);
+            setStrategyPlans(strategyPlans.map(sp => sp.goalId === updated.goalId ? updated : sp));
+        };
+
+        const deletePhase = (phaseId) => {
+            const updated = { ...plan, phases: plan.phases.filter(p => p.id !== phaseId) };
+            setPlanningGoal(updated);
+            setStrategyPlans(strategyPlans.map(sp => sp.goalId === updated.goalId ? updated : sp));
+        };
+
+        const statusColors = { done: 'bg-[#bef445] text-gray-900', active: 'bg-[#1b1b1b] text-white', upcoming: 'bg-gray-100 text-gray-500' };
+
+        return (
+            <>
+                {/* Header */}
+                <div className="flex justify-between items-center px-12 py-10 border-b border-gray-100">
+                    <div>
+                        <button onClick={() => { setActivePage('Goal Timeline'); setPlanningGoal(null); }}
+                            className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2 transition-colors">
+                            <iconify-icon icon="solar:arrow-left-linear" width="16" height="16"></iconify-icon> Back to Timeline
+                        </button>
+                        <h1 className="text-4xl tracking-tight font-normal">Strategy Planner</h1>
+                        <p className="text-sm text-gray-400 mt-1">Planning breakdown for <span className="text-gray-700 font-medium">{plan.goalTitle}</span></p>
+                    </div>
+                    <div className="flex items-center gap-5">
+                        <div className="text-right">
+                            <div className="text-xs text-gray-400">Milestones</div>
+                            <div className="text-lg font-medium">{doneMilestones}<span className="text-gray-300">/{totalMilestones}</span></div>
+                        </div>
+                        <div className="w-14 h-14 rounded-full border-[3px] border-[#bef445] flex items-center justify-center">
+                            <span className="text-sm font-semibold">{overallPct}%</span>
+                        </div>
+                        <button onClick={addPhase}
+                            className="bg-[#1b1b1b] text-white px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-black transition-colors">
+                            <span className="text-lg leading-none">+</span> Add Phase
+                        </button>
+                    </div>
+                </div>
+
+                {/* Overall progress */}
+                <div className="px-12 pt-6 pb-2">
+                    <div className="flex justify-between text-xs text-gray-400 mb-2">
+                        <span>Overall Progress</span>
+                        <span>{overallPct}% complete</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div className="bg-[#bef445] h-2 rounded-full transition-all duration-500" style={{ width: `${overallPct}%` }}></div>
+                    </div>
+                </div>
+
+                {/* Phase timeline visual */}
+                <div className="px-12 pt-6 pb-4">
+                    <div className="flex items-center gap-1">
+                        {plan.phases.map((phase, pi) => {
+                            const phaseDone = phase.milestones.filter(m => m.done).length;
+                            const phasePct = phase.milestones.length > 0 ? Math.round((phaseDone / phase.milestones.length) * 100) : 0;
+                            return (
+                                <React.Fragment key={phase.id}>
+                                    <div className="flex-1 relative">
+                                        <div className="h-2 rounded-full bg-gray-100">
+                                            <div className={`h-2 rounded-full transition-all duration-700 ${phase.status === 'done' ? 'bg-[#bef445]' : phase.status === 'active' ? 'bg-[#1b1b1b]' : 'bg-gray-200'}`} style={{ width: `${phasePct}%` }}></div>
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 mt-1 text-center truncate">{phase.name}</div>
+                                    </div>
+                                    {pi < plan.phases.length - 1 && (
+                                        <div className="w-6 flex items-center justify-center flex-shrink-0 -mt-4">
+                                            <iconify-icon icon="solar:arrow-right-linear" width="12" height="12" className="text-gray-300"></iconify-icon>
+                                        </div>
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Phases */}
+                <div className="px-12 pt-4 pb-20 space-y-6">
+                    {plan.phases.map((phase) => {
+                        const phaseDone = phase.milestones.filter(m => m.done).length;
+                        const phasePct = phase.milestones.length > 0 ? Math.round((phaseDone / phase.milestones.length) * 100) : 0;
+                        return (
+                            <div key={phase.id} className="border border-gray-100 rounded-2xl overflow-hidden">
+                                {/* Phase header */}
+                                <div className="flex items-center justify-between p-6 bg-white">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[phase.status]}`}>
+                                            {phase.status === 'done' ? 'Completed' : phase.status === 'active' ? 'In Progress' : 'Upcoming'}
+                                        </div>
+                                        <input type="text" value={phase.name} onChange={(e) => updatePhaseField(phase.id, 'name', e.target.value)}
+                                            className="text-lg font-medium outline-none text-gray-900 bg-transparent" />
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 bg-[#f0f2eb] px-3 py-1.5 rounded-lg">
+                                            <iconify-icon icon="solar:clock-circle-linear" width="14" height="14" className="text-gray-500"></iconify-icon>
+                                            <input type="text" value={phase.timeframe} onChange={(e) => updatePhaseField(phase.id, 'timeframe', e.target.value)}
+                                                className="text-xs font-medium outline-none bg-transparent text-gray-700 w-20" />
+                                        </div>
+                                        <div className="text-xs text-gray-400">{phasePct}%</div>
+                                        <select value={phase.status} onChange={(e) => updatePhaseField(phase.id, 'status', e.target.value)}
+                                            className="text-xs outline-none bg-transparent text-gray-400 cursor-pointer">
+                                            <option value="upcoming">Upcoming</option>
+                                            <option value="active">Active</option>
+                                            <option value="done">Done</option>
+                                        </select>
+                                        <button onClick={() => deletePhase(phase.id)} className="text-gray-300 hover:text-red-400 transition-colors">
+                                            <iconify-icon icon="solar:trash-bin-2-linear" width="16" height="16"></iconify-icon>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Milestones */}
+                                <div className="px-6 pb-4 space-y-2 border-t border-gray-50 pt-4 bg-gray-50/50">
+                                    <div className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wider">Milestones</div>
+                                    {phase.milestones.map((m, mi) => (
+                                        <div key={mi} className="flex items-center gap-3">
+                                            <button onClick={() => togglePlanMilestone(phase.id, mi)}
+                                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${m.done ? 'bg-[#bef445] border-[#bef445]' : 'border-gray-300 hover:border-gray-400'}`}>
+                                                {m.done && <iconify-icon icon="solar:check-read-linear" width="12" height="12" className="text-gray-900"></iconify-icon>}
+                                            </button>
+                                            <input type="text" value={m.text} onChange={(e) => updateMilestoneText(phase.id, mi, e.target.value)}
+                                                placeholder="Describe milestone..."
+                                                className={`flex-1 text-sm outline-none bg-transparent ${m.done ? 'line-through text-gray-400' : 'text-gray-700'}`} />
+                                        </div>
+                                    ))}
+                                    <button onClick={() => addMilestone(phase.id)}
+                                        className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 pt-1 transition-colors">
+                                        <span className="text-sm">+</span> Add milestone
+                                    </button>
+                                </div>
+
+                                {/* Key Actions & Risks */}
+                                <div className="grid grid-cols-2 gap-0 border-t border-gray-100">
+                                    <div className="p-5 border-r border-gray-100">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <iconify-icon icon="solar:bolt-linear" width="14" height="14" className="text-[#bef445]"></iconify-icon>
+                                            <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Key Actions</span>
+                                        </div>
+                                        <input type="text" value={phase.keyActions} onChange={(e) => updatePhaseField(phase.id, 'keyActions', e.target.value)}
+                                            placeholder="What needs to be done..."
+                                            className="text-sm text-gray-600 outline-none bg-transparent w-full placeholder-gray-300" />
+                                    </div>
+                                    <div className="p-5">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <iconify-icon icon="solar:danger-triangle-linear" width="14" height="14" className="text-amber-400"></iconify-icon>
+                                            <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Risks</span>
+                                        </div>
+                                        <input type="text" value={phase.risks} onChange={(e) => updatePhaseField(phase.id, 'risks', e.target.value)}
+                                            placeholder="Potential blockers..."
+                                            className="text-sm text-gray-600 outline-none bg-transparent w-full placeholder-gray-300" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </>
+        );
+    };
+
     /* ─── active page content ─── */
     const renderPageContent = () => {
         switch (activePage) {
@@ -561,6 +797,7 @@ export default function App() {
             case 'Daily Routine': return renderDailyRoutine();
             case 'Report': return renderReport();
             case 'Help center': return renderHelpCenter();
+            case 'Strategy Planner': return renderStrategyPlanner();
             default: return renderGoalTimeline();
         }
     };
@@ -628,9 +865,16 @@ export default function App() {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-8 pt-4 flex gap-4">
-                            <button onClick={handleAddGoalSubmit} className="flex-1 bg-[#bef445] text-gray-900 text-sm font-medium py-3 rounded-lg hover:bg-[#a6d83a] transition-colors">Add Goal</button>
-                            <button onClick={() => setIsAddGoalModalOpen(false)} className="flex-1 bg-white text-gray-900 text-sm font-medium py-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">Cancel</button>
+                        <div className="p-8 pt-4 space-y-3">
+                            <div className="flex gap-4">
+                                <button onClick={() => handleAddGoalSubmit(false)} className="flex-1 bg-[#bef445] text-gray-900 text-sm font-medium py-3 rounded-lg hover:bg-[#a6d83a] transition-colors">Add Goal</button>
+                                <button onClick={() => setIsAddGoalModalOpen(false)} className="flex-1 bg-white text-gray-900 text-sm font-medium py-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">Cancel</button>
+                            </div>
+                            <button onClick={() => handleAddGoalSubmit(true)}
+                                className="w-full bg-[#1b1b1b] text-white text-sm font-medium py-3 rounded-lg hover:bg-black transition-colors flex items-center justify-center gap-2">
+                                <iconify-icon icon="solar:routing-2-linear" width="18" height="18"></iconify-icon>
+                                Plan Strategy & Breakdown
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -877,11 +1121,31 @@ export default function App() {
                             </div>
                             <div className="flex justify-between text-xs text-gray-400"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
                         </div>
-                        <div className="flex gap-3 pt-4 border-t border-gray-100">
-                            {selectedGoal.status !== 'Done' && (
-                                <button onClick={() => handleMarkDone(selectedGoal.id)} className="flex-1 bg-[#bef445] text-gray-900 text-xs font-medium py-2.5 rounded-lg hover:bg-[#a6d83a] transition-colors">Mark as Done</button>
-                            )}
-                            <button onClick={() => handleDeleteGoal(selectedGoal.id)} className="flex-1 bg-white text-red-500 text-xs font-medium py-2.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">Delete</button>
+                        <div className="space-y-2 pt-4 border-t border-gray-100">
+                            <button onClick={() => {
+                                let existingPlan = strategyPlans.find(sp => sp.goalId === selectedGoal.id);
+                                if (!existingPlan) {
+                                    existingPlan = { goalId: selectedGoal.id, goalTitle: selectedGoal.title, phases: [
+                                        { id: 'ep1', name: 'Phase 1 — Research & Planning', timeframe: 'Week 1', status: 'active', milestones: [{ text: 'Define clear objectives', done: false }, { text: 'Research best approaches', done: false }], keyActions: 'Brainstorm, gather resources', risks: 'Unclear requirements' },
+                                        { id: 'ep2', name: 'Phase 2 — Execution', timeframe: 'Week 2-3', status: 'upcoming', milestones: [{ text: 'Start core work', done: false }, { text: 'Track daily progress', done: false }], keyActions: 'Daily focused work sessions', risks: 'Losing momentum' },
+                                        { id: 'ep3', name: 'Phase 3 — Review & Complete', timeframe: 'Week 4', status: 'upcoming', milestones: [{ text: 'Review results', done: false }, { text: 'Final adjustments', done: false }], keyActions: 'Evaluate and iterate', risks: 'Last-minute changes' },
+                                    ]};
+                                    setStrategyPlans([...strategyPlans, existingPlan]);
+                                }
+                                setPlanningGoal(existingPlan);
+                                setSelectedGoal(null);
+                                setActivePage('Strategy Planner');
+                            }}
+                                className="w-full bg-[#1b1b1b] text-white text-xs font-medium py-2.5 rounded-lg hover:bg-black transition-colors flex items-center justify-center gap-2">
+                                <iconify-icon icon="solar:routing-2-linear" width="14" height="14"></iconify-icon>
+                                Plan Strategy & Breakdown
+                            </button>
+                            <div className="flex gap-3">
+                                {selectedGoal.status !== 'Done' && (
+                                    <button onClick={() => handleMarkDone(selectedGoal.id)} className="flex-1 bg-[#bef445] text-gray-900 text-xs font-medium py-2.5 rounded-lg hover:bg-[#a6d83a] transition-colors">Mark as Done</button>
+                                )}
+                                <button onClick={() => handleDeleteGoal(selectedGoal.id)} className="flex-1 bg-white text-red-500 text-xs font-medium py-2.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">Delete</button>
+                            </div>
                         </div>
                     </div>
                 </div>
