@@ -4,13 +4,12 @@ import React, { useState, useMemo } from 'react';
 const NAV_ICONS = {
     'Goal Timeline': 'solar:chart-2-linear',
     'Daily Routine': 'solar:sun-2-linear',
-    'Weekly Routine': 'solar:calendar-minimalistic-linear',
-    'Monthly Routine': 'solar:calendar-linear',
     'Report': 'solar:document-text-linear',
     'Help center': 'solar:question-circle-linear',
 };
 
 /* ───────────────────────── fake routine data ───────────────────────── */
+// Remaining routine data
 const DAILY_TASKS = [
     { id: 'd1', time: '06:00 AM', title: 'Morning Meditation', category: 'Wellness', icon: 'solar:moon-sleep-linear', done: true },
     { id: 'd2', time: '07:00 AM', title: 'Gym Workout', category: 'Fitness', icon: 'solar:running-2-linear', done: true },
@@ -23,32 +22,11 @@ const DAILY_TASKS = [
     { id: 'd9', time: '09:00 PM', title: 'Journal & Reflection', category: 'Wellness', icon: 'solar:pen-new-square-linear', done: false },
 ];
 
-const WEEKLY_TASKS = [
-    { id: 'w1', day: 'Monday', title: 'Sprint Planning', category: 'Work', icon: 'solar:clipboard-list-linear', done: true },
-    { id: 'w2', day: 'Tuesday', title: 'Design System Update', category: 'Design', icon: 'solar:palette-2-linear', done: true },
-    { id: 'w3', day: 'Wednesday', title: 'Newsletter Draft', category: 'Marketing', icon: 'solar:letter-linear', done: false },
-    { id: 'w4', day: 'Thursday', title: 'Portfolio Review', category: 'Personal', icon: 'solar:gallery-minimalistic-linear', done: false },
-    { id: 'w5', day: 'Friday', title: 'Weekly Team Retrospective', category: 'Work', icon: 'solar:users-group-rounded-linear', done: false },
-    { id: 'w6', day: 'Saturday', title: 'Side Project Development', category: 'Development', icon: 'solar:code-linear', done: false },
-    { id: 'w7', day: 'Sunday', title: 'Meal Prep & Rest', category: 'Health', icon: 'solar:cup-hot-linear', done: false },
-];
-
-const MONTHLY_TASKS = [
-    { id: 'm1', week: 'Week 1', title: 'Monthly Budget Review', category: 'Finance', icon: 'solar:wallet-money-linear', done: true },
-    { id: 'm2', week: 'Week 1', title: 'Set Monthly OKRs', category: 'Work', icon: 'solar:target-linear', done: true },
-    { id: 'm3', week: 'Week 2', title: 'Dentist Appointment', category: 'Health', icon: 'solar:heart-pulse-linear', done: true },
-    { id: 'm4', week: 'Week 2', title: 'Client Milestone Delivery', category: 'Work', icon: 'solar:case-linear', done: false },
-    { id: 'm5', week: 'Week 3', title: 'Invest Research & Rebalance', category: 'Finance', icon: 'solar:chart-2-linear', done: false },
-    { id: 'm6', week: 'Week 3', title: 'Family Video Call', category: 'Personal', icon: 'solar:phone-calling-linear', done: false },
-    { id: 'm7', week: 'Week 4', title: 'Monthly Progress Report', category: 'Work', icon: 'solar:document-text-linear', done: false },
-    { id: 'm8', week: 'Week 4', title: 'Backup All Projects', category: 'Development', icon: 'solar:server-linear', done: false },
-];
-
 /* ───────────────────────── help center data ───────────────────────── */
 const HELP_ITEMS = [
     { q: 'How do I create a new goal?', a: 'Click the "+ Add Goal" button in the top-right corner of the Goal Timeline page. Fill in the goal name, dates, target, and description, then click "Add Goal" to save.' },
     { q: 'Can I edit an existing goal?', a: 'Yes! Click on any goal row to open the Goal Detail panel. You can view all the details and use the edit icon next to the goal name to modify it.' },
-    { q: 'How do routines work?', a: 'Routines are organized into Daily, Weekly, and Monthly views. Each contains task checklists you can toggle as complete. Progress is tracked automatically.' },
+    { q: 'How do routines work?', a: 'Routines are organized into a Daily view. It contains task checklists you can toggle as complete. Progress is tracked automatically.' },
     { q: 'Where can I see my progress reports?', a: 'Navigate to the "Report" section from the sidebar. You\'ll find visual charts showing your goal completion rate, category breakdown, and weekly activity trends.' },
     { q: 'How do I mark a goal as done?', a: 'When a goal reaches 100% progress, it automatically moves to the "Goal Done" section. You can also manually update progress from the Goal Detail panel.' },
     { q: 'Can I delete a goal?', a: 'Currently, goals can be archived by marking them as done. Full delete functionality will be available in a future update.' },
@@ -66,8 +44,6 @@ export default function App() {
 
     /* routine state */
     const [dailyTasks, setDailyTasks] = useState(DAILY_TASKS);
-    const [weeklyTasks, setWeeklyTasks] = useState(WEEKLY_TASKS);
-    const [monthlyTasks, setMonthlyTasks] = useState(MONTHLY_TASKS);
 
     /* help center accordion */
     const [openFaq, setOpenFaq] = useState(null);
@@ -135,8 +111,6 @@ export default function App() {
     };
 
     const toggleDailyTask = (id) => setDailyTasks(dailyTasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
-    const toggleWeeklyTask = (id) => setWeeklyTasks(weeklyTasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
-    const toggleMonthlyTask = (id) => setMonthlyTasks(monthlyTasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
 
     const handleNavClick = (label) => {
         setActivePage(label);
@@ -146,7 +120,7 @@ export default function App() {
 
     /* ─── nav items ─── */
     const navLinks = [
-        'Goal Timeline', 'Daily Routine', 'Weekly Routine', 'Monthly Routine', 'Report', 'Help center',
+        'Goal Timeline', 'Daily Routine', 'Report', 'Help center',
     ];
 
     /* ════════════════════════  PAGE RENDERERS  ════════════════════════ */
@@ -318,8 +292,6 @@ export default function App() {
         const maxCat = Math.max(...catEntries.map(c => c[1]), 1);
 
         const dailyDone = dailyTasks.filter(t => t.done).length;
-        const weeklyDone = weeklyTasks.filter(t => t.done).length;
-        const monthlyDone = monthlyTasks.filter(t => t.done).length;
 
         return (
             <>
@@ -365,11 +337,9 @@ export default function App() {
                 {/* Routine progress */}
                 <div className="px-12 py-6 pb-20">
                     <h2 className="text-lg font-medium mb-6">Routine Completion</h2>
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 gap-6 max-w-xs">
                         {[
                             { label: 'Daily', done: dailyDone, total: dailyTasks.length, color: '#bef445' },
-                            { label: 'Weekly', done: weeklyDone, total: weeklyTasks.length, color: '#1b1b1b' },
-                            { label: 'Monthly', done: monthlyDone, total: monthlyTasks.length, color: '#6366f1' },
                         ].map((r, i) => {
                             const rpct = r.total > 0 ? Math.round((r.done / r.total) * 100) : 0;
                             return (
@@ -468,8 +438,6 @@ export default function App() {
         switch (activePage) {
             case 'Goal Timeline': return renderGoalTimeline();
             case 'Daily Routine': return renderRoutinePage('Daily Routine', 'Your daily tasks and habits', dailyTasks, toggleDailyTask, 'time');
-            case 'Weekly Routine': return renderRoutinePage('Weekly Routine', 'Plan your week ahead', weeklyTasks, toggleWeeklyTask, 'day');
-            case 'Monthly Routine': return renderRoutinePage('Monthly Routine', 'Monthly milestones and checkpoints', monthlyTasks, toggleMonthlyTask, 'week');
             case 'Report': return renderReport();
             case 'Help center': return renderHelpCenter();
             default: return renderGoalTimeline();
