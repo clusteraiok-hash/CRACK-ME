@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 
 export default function App() {
     const [selectedGoal, setSelectedGoal] = useState(null);
+    const [isAddGoalModalOpen, setIsAddGoalModalOpen] = useState(false);
+    const [newGoalForm, setNewGoalForm] = useState({ name: '', startDate: '', dueDate: '', target: '', description: '' });
 
     const navLinks = [
         { label: 'Goal Timeline', active: true },
@@ -12,7 +14,7 @@ export default function App() {
         { label: 'Help center' },
     ];
 
-    const onProgressGoals = [
+    const [onProgressGoals, setOnProgressGoals] = useState([
         {
             id: 1,
             time: '09:05 AM',
@@ -49,7 +51,7 @@ export default function App() {
             status: 'Active',
             progress: '30%'
         }
-    ];
+    ]);
 
     const doneGoals = [
         {
@@ -78,8 +80,133 @@ export default function App() {
         }
     ];
 
+    const handleAddGoalSubmit = () => {
+        const newEntry = {
+            id: Date.now(),
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            icon: 'solar:target-linear',
+            title: newGoalForm.name || 'Untitled Goal',
+            category: 'Custom',
+            startDate: newGoalForm.startDate || 'N/A',
+            dueDate: newGoalForm.dueDate || 'N/A',
+            target: newGoalForm.target || 'N/A',
+            status: 'Active',
+            progress: '0%'
+        };
+        setOnProgressGoals([newEntry, ...onProgressGoals]);
+        setIsAddGoalModalOpen(false);
+        setNewGoalForm({ name: '', startDate: '', dueDate: '', target: '', description: '' });
+    };
+
     return (
         <div className="bg-[#f0f2eb] text-gray-900 font-sans h-screen flex overflow-hidden relative">
+            
+            {/* Add Goal Modal */}
+            {isAddGoalModalOpen && (
+                <div className="absolute inset-0 bg-black/20 z-[60] flex items-center justify-center backdrop-blur-sm -ml-4">
+                    <div className="bg-white rounded-2xl w-[480px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col">
+                        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white">
+                            <h2 className="text-xl font-medium tracking-tight">Add Goal</h2>
+                            <button onClick={() => setIsAddGoalModalOpen(false)} className="text-gray-400 hover:text-gray-900 transition-colors">
+                                <iconify-icon icon="mingcute:close-line" width="24" height="24"></iconify-icon>
+                            </button>
+                        </div>
+                        
+                        <div className="p-8 space-y-6 flex-1 overflow-y-auto">
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-2">Goal name</label>
+                                <div className="border-b border-gray-200 pb-2 flex justify-between items-center">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Enter name"
+                                        value={newGoalForm.name}
+                                        onChange={(e) => setNewGoalForm({...newGoalForm, name: e.target.value})}
+                                        className="w-full text-sm outline-none placeholder-gray-300 text-gray-900"
+                                    />
+                                    <iconify-icon icon="solar:pen-linear" width="16" height="16" className="text-gray-400"></iconify-icon>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-8">
+                                <div>
+                                    <label className="text-xs text-gray-400 block mb-2">Start date</label>
+                                    <div className="border-b border-gray-200 pb-2 flex justify-between items-center">
+                                        <input 
+                                            type="text" 
+                                            placeholder="30 Oct, 222"
+                                            value={newGoalForm.startDate}
+                                            onChange={(e) => setNewGoalForm({...newGoalForm, startDate: e.target.value})}
+                                            className="w-full text-sm outline-none placeholder-gray-300 text-gray-900"
+                                        />
+                                        <iconify-icon icon="solar:calendar-linear" width="16" height="16" className="text-gray-400"></iconify-icon>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-400 block mb-2">Due Dtae</label>
+                                    <div className="border-b border-gray-200 pb-2 flex justify-between items-center">
+                                        <input 
+                                            type="text" 
+                                            placeholder="25 Dec, 22"
+                                            value={newGoalForm.dueDate}
+                                            onChange={(e) => setNewGoalForm({...newGoalForm, dueDate: e.target.value})}
+                                            className="w-full text-sm outline-none placeholder-gray-300 text-gray-900"
+                                        />
+                                        <iconify-icon icon="solar:calendar-linear" width="16" height="16" className="text-gray-400"></iconify-icon>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-2">Goal target</label>
+                                <div className="border-b border-gray-200 pb-2">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Enter target"
+                                        value={newGoalForm.target}
+                                        onChange={(e) => setNewGoalForm({...newGoalForm, target: e.target.value})}
+                                        className="w-full text-sm outline-none placeholder-gray-300 text-gray-900"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-2 flex">Upload file</label>
+                                <div className="border-b border-gray-200 pb-2 flex items-center gap-2 cursor-pointer pt-1 hover:text-gray-600 transition-colors group">
+                                    <iconify-icon icon="solar:document-add-linear" width="16" height="16" className="text-gray-400 group-hover:text-gray-500"></iconify-icon>
+                                    <span className="text-sm text-gray-400 group-hover:text-gray-500">Upload file here</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-2 flex">Description</label>
+                                <div className="border-b border-gray-200 pb-2">
+                                    <textarea 
+                                        placeholder="Enter Description"
+                                        value={newGoalForm.description}
+                                        onChange={(e) => setNewGoalForm({...newGoalForm, description: e.target.value})}
+                                        className="w-full text-sm outline-none placeholder-gray-300 text-gray-900 h-8 resize-none pt-1"
+                                    ></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 pt-0 bg-white flex gap-4 mt-auto">
+                            <button 
+                                onClick={handleAddGoalSubmit}
+                                className="flex-1 bg-[#bef445] text-gray-900 text-sm font-medium py-3 rounded-lg hover:bg-[#a6d83a] transition-colors"
+                            >
+                                Add Goal
+                            </button>
+                            <button 
+                                onClick={() => setIsAddGoalModalOpen(false)}
+                                className="flex-1 bg-white text-gray-900 text-sm font-medium py-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Floating Goal Detail Panel */}
             {selectedGoal && (
@@ -209,12 +336,21 @@ export default function App() {
                 {/* Header */}
                 <div className="flex justify-between items-center px-12 py-10 border-b border-gray-100">
                     <h1 className="text-4xl tracking-tight font-normal">Goal Timeline</h1>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            className="border border-gray-200 rounded-lg pl-3 pr-10 py-2 text-sm outline-none focus:border-gray-300 w-48 transition-colors"
-                        />
+                    <div className="flex items-center gap-6">
+                        <div className="relative">
+                            <iconify-icon icon="solar:magnifer-linear" width="18" height="18" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></iconify-icon>
+                            <input
+                                type="text"
+                                placeholder="Search goal"
+                                className="border border-gray-200 rounded-lg pl-11 pr-4 py-2.5 text-sm outline-none focus:border-gray-300 w-64 transition-colors placeholder:text-gray-300 text-gray-900 bg-white"
+                            />
+                        </div>
+                        <button 
+                            onClick={() => setIsAddGoalModalOpen(true)}
+                            className="bg-[#1b1b1b] text-white px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium hover:bg-black transition-colors"
+                        >
+                            <span className="text-lg leading-none shrink-0">+</span> <span className="pt-px">Add Goal</span>
+                        </button>
                     </div>
                 </div>
 
