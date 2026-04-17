@@ -2,9 +2,10 @@ import { memo, useMemo } from 'react';
 import { useApp } from '@/context';
 import { CATEGORY_ICONS } from '@/constants';
 import type { TimeframeType } from '@/types';
+import { ContributionGrid } from './ContributionGrid';
 
 const TIMEFRAMES: TimeframeType[] = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
 
 export const Report = memo(function Report() {
   const { liveDate, onProgressGoals, doneGoals, dailyTasks, reportTimeframe, setReportTimeframe, activityLog } = useApp();
@@ -40,40 +41,6 @@ export const Report = memo(function Report() {
 
   const dailyDone = dailyTasks.filter((t) => t.done).length;
   const dailyPct = dailyTasks.length > 0 ? Math.round((dailyDone / dailyTasks.length) * 100) : 0;
-
-  // Compute real activity data for the bar chart from activity log
-  const weeklyActivityData = useMemo(() => {
-    const now = new Date();
-    const dayData: Record<string, number> = {};
-
-    // Get dates for last 7 days
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const key = d.toISOString().split('T')[0];
-      dayData[key] = 0;
-    }
-
-    // Count completed activities
-    activityLog.forEach(entry => {
-      if (entry.date in dayData && (entry.type === 'task_completed' || entry.type === 'goal_completed' || entry.type === 'milestone_completed')) {
-        dayData[entry.date]++;
-      }
-    });
-
-    const dates = Object.keys(dayData).sort();
-    const maxVal = Math.max(...Object.values(dayData), 1);
-
-    return dates.map((date, i) => {
-      const d = new Date(date + 'T12:00:00');
-      return {
-        day: DAY_LABELS[i % 7] || d.toLocaleDateString('en-US', { weekday: 'short' }),
-        value: dayData[date],
-        pct: Math.round((dayData[date] / maxVal) * 100),
-        isToday: date === now.toISOString().split('T')[0],
-      };
-    });
-  }, [activityLog]);
 
   // Compute streak (consecutive days with activity)
   const streak = useMemo(() => {
@@ -217,33 +184,8 @@ export const Report = memo(function Report() {
           </div>
         </div>
 
-        {/* Activity Chart — Real Data */}
-        <div>
-          <h2 className="text-2xl tracking-tighter font-black uppercase mb-8 text-[#022c22] flex items-center gap-2">
-             <span className="text-[#bef264] text-lg">■</span>
-             Activity Overview
-          </h2>
-          <div className="bg-white rounded-premium p-8 border border-[#dcfce7] shadow-soft">
-            <div className="flex items-end gap-4 h-40">
-              {weeklyActivityData.map((d) => (
-                <div key={d.day} className="flex-1 flex flex-col items-center gap-4">
-                  <span className="text-xs font-bold text-[#022c22]/40 tracking-widest">{d.value}</span>
-                  <div
-                    className="w-full rounded-full transition-all duration-300 hover:opacity-80 text-[#022c22]"
-                    style={{
-                      height: `${Math.max(d.pct, 5)}%`,
-                      backgroundColor: d.isToday ? '#bef264' : 'currentColor',
-                    }}
-                  />
-                  <span className={`text-xs font-bold tracking-tighter uppercase ${d.isToday ? 'text-[#022c22]' : 'text-slate-400'}`}>{d.day}</span>
-                </div>
-              ))}
-            </div>
-            {weeklyActivityData.every(d => d.value === 0) && (
-              <p className="text-center text-xs text-gray-400 mt-4">Complete tasks and milestones to see your activity here.</p>
-            )}
-          </div>
-        </div>
+        {/* Activity Heatmap */}
+        <ContributionGrid />
 
         {/* Pros / Cons */}
         <div className="mt-16 grid grid-cols-2 gap-12">

@@ -5,6 +5,7 @@ export { AddTaskModal } from './AddTaskModal';
 export { SettingsModal } from './SettingsModal';
 export { GoalDetailPanel } from './GoalDetailPanel';
 export { ToastContainer } from './Toast';
+export { ChatBot } from './ChatBot';
 export * from './ErrorBoundary';
 export * from './Button';
 export * from './Modal';

@@ -8,6 +8,7 @@ import {
   AddTaskModal,
   SettingsModal,
   ToastContainer,
+  ChatBot,
 } from '@/components';
 import {
   GoalTimeline,
@@ -64,6 +65,7 @@ function AppContent() {
       <EditTaskModal />
       <AddTaskModal />
       <SettingsModal />
+      <ChatBot />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
