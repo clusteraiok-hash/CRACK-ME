@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal, Button } from '@/components';
 import { useApp } from '@/context';
+import { CATEGORY_LIST } from '@/constants';
 
 export function AddTaskModal() {
   const { isAddTaskOpen, setIsAddTaskOpen, handleAddNewTask, setNewTaskForm } = useApp();
@@ -69,10 +70,9 @@ export function AddTaskModal() {
             onChange={(e) => setTaskForm({ ...taskForm, category: e.target.value })}
             className="w-full bg-[#f0fdf4] border border-[#dcfce7] rounded-xl px-4 py-3.5 text-sm outline-none text-[#022c22] font-bold cursor-pointer transition-all focus:border-[#022c22]/30 appearance-none"
           >
-            <option value="Work">Work</option>
-            <option value="Personal">Personal</option>
-            <option value="Health">Health</option>
-            <option value="Learning">Learning</option>
+            {CATEGORY_LIST.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
         </div>
       </div>

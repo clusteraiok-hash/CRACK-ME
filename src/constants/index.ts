@@ -27,6 +27,13 @@ export const CATEGORY_ICONS: Record<string, string> = {
   'Travel': 'solar:globe-linear',
   'Shopping': 'solar:bag-2-linear',
   'Home': 'solar:home-2-linear',
+  'Family': 'solar:users-group-rounded-linear',
+  'Hobbies': 'solar:gamepad-linear',
+  'Cleaning': 'solar:bath-linear',
+  'Focus': 'solar:target-linear',
+  'Rest': 'solar:sleeping-linear',
+  'Planning': 'solar:notes-linear',
+  'Reading': 'solar:book-linear',
   'Custom': 'solar:target-linear',
 };
 
