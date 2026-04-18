@@ -15,7 +15,13 @@ export function ChatBot() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { addToast } = useApp();
+  const { addToast, onProgressGoals, dailyTasks, settingsForm } = useApp();
+
+  const getDashboardContext = () => {
+    const activeGoals = onProgressGoals.map(g => `- ${g.title} (${g.progress}% progress, due ${g.dueDate})`).join('\n');
+    const tasks = dailyTasks.map(t => `- ${t.title} [${t.startTime} - ${t.endTime}] (${t.done ? 'COMPLETED' : 'PENDING'})`).join('\n');
+    return `USER: ${settingsForm.name}\n\nACTIVE GOALS:\n${activeGoals || 'No active goals'}\n\nTODAY'S TACTICAL TASKS:\n${tasks || 'No tasks for today'}`;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -35,9 +41,13 @@ export function ChatBot() {
     setIsLoading(true);
 
     try {
-      // 1. Send to Edge Function
+      const dashboardContext = getDashboardContext();
+      
       const { data, error } = await supabase.functions.invoke('groq-chat', {
-        body: { messages: [...messages, userMsg].filter(m => m.role !== 'system') }
+        body: { 
+          messages: [...messages, userMsg].filter(m => m.role !== 'system'),
+          context: dashboardContext
+        }
       });
 
       if (error) throw error;
@@ -46,18 +56,19 @@ export function ChatBot() {
         const aiMsg: Message = data.choices[0].message;
         setMessages(prev => [...prev, aiMsg]);
         
-        // 2. We can optionally store this in the database chat_messages table here
         await supabase.from('chat_messages').insert([
            { role: 'user', content: userMsg.content },
            { role: 'assistant', content: aiMsg.content }
         ]);
+      } else if (data && data.error) {
+        throw new Error(data.error);
       } else {
         throw new Error("Invalid response format from AI");
       }
     } catch (err: any) {
       console.error("Chat error:", err);
-      addToast('error', 'Failed to connect to AI assistant.');
-      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting right now." }]);
+      addToast('error', `Chat Error: ${err.message || 'Connection failed'}`);
+      setMessages(prev => [...prev, { role: 'assistant', content: `Operation failed: ${err.message || 'I cannot connect to my cognitive core right now.'}` }]);
     } finally {
       setIsLoading(false);
     }
