@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { AppProvider, useApp } from '@/context';
 import { ErrorBoundary } from '@/components';
@@ -137,6 +138,7 @@ export default function App() {
       <AuthProvider>
         <AppRouter />
       </AuthProvider>
+      <Analytics />
     </ErrorBoundary>
   );
 }
