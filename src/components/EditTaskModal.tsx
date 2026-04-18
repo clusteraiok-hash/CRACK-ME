@@ -25,15 +25,15 @@ export function EditTaskModal() {
 
   const handleSubmit = () => {
     if (!taskForm.title || !editingTask) return;
-    setEditingTask({
+    // Pass complete updated task directly — no race condition
+    const updatedTask = {
       ...editingTask,
       title: taskForm.title,
       startTime: taskForm.startTime,
       endTime: taskForm.endTime,
       category: taskForm.category,
-    });
-    handleSaveEditTask();
-    setEditingTask(null);
+    };
+    handleSaveEditTask(updatedTask);
   };
 
   return (

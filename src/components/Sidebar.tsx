@@ -1,15 +1,24 @@
 import { memo } from 'react';
 import { NAV_ICONS, NAV_LINKS } from '@/constants';
 import { useApp } from '@/context';
+import { useAuth } from '@/context/AuthContext';
 import { getISTShortDate } from '@/utils/dateUtils';
 import type { PageType } from '@/types';
 
 export const Sidebar = memo(function Sidebar() {
   const { activePage, setActivePage, setIsSettingsOpen, strategyPlans } = useApp();
+  const { user, signOut } = useAuth();
 
   const handleNavClick = (label: PageType) => {
     setActivePage(label);
   };
+
+  const handleLogout = async () => {
+    await signOut();
+  };
+
+  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
+  const displayEmail = user?.email || '';
 
   return (
     <aside className="w-[300px] flex-shrink-0 flex flex-col justify-between pt-12 pb-6 px-6 overflow-y-auto bg-[#022c22] text-white">
@@ -51,25 +60,34 @@ export const Sidebar = memo(function Sidebar() {
         </nav>
       </div>
 
-      <div className="space-y-6 px-4 mt-6">
-        <div className="flex items-center gap-3">
-          <img
-            src="https://i.pravatar.cc/150?u=a042581f4e29026024d"
-            alt="User avatar"
-            className="w-8 h-8 rounded-full bg-gray-200 object-cover"
-            loading="lazy"
-          />
-          <div>
-            <span className="text-[10px] text-gray-400">{getISTShortDate()}</span>
+      <div className="space-y-4 px-4 mt-6">
+        {/* User Info */}
+        <div className="flex items-center gap-3 pb-4 border-b border-white/5">
+          <div className="w-9 h-9 rounded-full bg-[#bef264]/20 border border-[#bef264]/30 flex items-center justify-center text-[#bef264] text-xs font-black uppercase">
+            {displayName.charAt(0)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold text-white truncate">{displayName}</div>
+            <div className="text-[10px] text-white/30 truncate">{displayEmail}</div>
           </div>
         </div>
 
+        <div className="text-[10px] text-gray-400">{getISTShortDate()}</div>
+
         <button
           onClick={() => setIsSettingsOpen(true)}
-          className="w-full flex items-center gap-3 text-white/40 hover:text-[#bef264] transition-colors pt-6 border-t border-white/5"
+          className="w-full flex items-center gap-3 text-white/40 hover:text-[#bef264] transition-colors py-2 rounded-xl hover:bg-white/5"
         >
-          <iconify-icon icon="solar:settings-linear" width="22" height="22" aria-hidden="true" />
+          <iconify-icon icon="solar:settings-linear" width="20" height="20" aria-hidden="true" />
           <span className="text-sm font-bold tracking-tight">Settings</span>
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 text-white/40 hover:text-rose-400 transition-colors py-2.5 rounded-xl hover:bg-white/5 border border-white/5 hover:border-rose-400/20"
+        >
+          <iconify-icon icon="solar:logout-2-linear" width="18" height="18" aria-hidden="true" />
+          <span className="text-xs font-bold tracking-tight">Log out</span>
         </button>
       </div>
     </aside>

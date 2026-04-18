@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useMemo, useEffect } from 'react';
-import type { AppContextType, Goal, DailyTask, StrategyPlan, PageType, TimeframeType, Toast, ActivityLogEntry, ScheduledEvent } from '@/types';
+import type { AppContextType, Goal, DailyTask, StrategyPlan, PageType, TimeframeType, Toast, ActivityLogEntry, ScheduledEvent, NewTaskForm } from '@/types';
 import { useLocalStorage, useClock } from '@/hooks';
 import { supabase } from '@/lib/supabase';
 import {
@@ -26,6 +26,21 @@ interface AppProviderProps {
 function getTodayIST(): string {
   const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Safe wrapper for Supabase calls — logs errors and optionally shows a toast */
+function handleSupabaseError(
+  promise: PromiseLike<{ error: unknown }>,
+  toastFn?: (type: Toast['type'], msg: string) => void
+) {
+  Promise.resolve(promise).then(({ error }) => {
+    if (error) {
+      console.error('Supabase sync error:', error);
+      toastFn?.('error', 'Sync failed — changes saved locally only.');
+    }
+  }).catch((err) => {
+    console.error('Supabase network error:', err);
+  });
 }
 
 export function AppProvider({ children }: AppProviderProps) {
@@ -63,13 +78,21 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const [lastResetDate, setLastResetDate] = useLocalStorage<string>(STORAGE_KEYS.LAST_RESET_DATE, getTodayIST());
 
+  const addToast = useCallback((type: Toast['type'], message: string) => {
+    const id = crypto.randomUUID();
+    const toast: Toast = { id, type, message, duration: 3500 };
+    setToasts(prev => [...prev, toast]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, toast.duration);
+  }, []);
+
   // Supabase Hydration Effect
   useEffect(() => {
     const fetchSupabaseData = async () => {
       try {
         const today = getTodayIST();
         
-        // Fetch everything including today's tasks
         const [goalsRes, tasksRes, plansRes, logsRes, eventsRes, templatesRes] = await Promise.all([
           supabase.from('goals').select('*'),
           supabase.from('daily_tasks').select('*'),
@@ -90,24 +113,18 @@ export function AppProvider({ children }: AppProviderProps) {
 
         // DAILY RESET / SEEDING LOGIC
         if (tasksRes.data && tasksRes.data.length > 0) {
-          // Tasks already exist for today
           setDailyTasks(tasksRes.data);
         } else if (templatesRes.data && templatesRes.data.length > 0) {
-          // No tasks for today - Seed from templates
           const newTasks = templatesRes.data.map(t => ({
             ...t,
-            id: 'dt' + Date.now() + Math.random().toString(36).slice(2, 5),
+            id: crypto.randomUUID(),
             done: false,
             assignedDate: today,
-            // Deep copy subtasks and reset done flag
             subtasks: t.subtasks?.map((s: any) => ({ ...s, done: false })) || []
           }));
           
           setDailyTasks(newTasks);
-          
-          // Sync new tasks to Supabase
-          await supabase.from('daily_tasks').insert(newTasks);
-          
+          handleSupabaseError(supabase.from('daily_tasks').insert(newTasks), addToast);
           addToast('info', 'Your daily routine has been refreshed for today!');
         }
         
@@ -122,30 +139,41 @@ export function AppProvider({ children }: AppProviderProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Daily Check Effect (handles mid-day cross-over)
+  // Daily Check Effect — re-hydrate without page reload
   useEffect(() => {
-    const checkDate = () => {
+    const checkDate = async () => {
       const today = getTodayIST();
       if (today !== lastResetDate) {
-        window.location.reload(); // Simple way to trigger re-hydration and seeding
+        setLastResetDate(today);
+        // Re-fetch tasks for the new day
+        try {
+          const [tasksRes, templatesRes] = await Promise.all([
+            supabase.from('daily_tasks').select('*'),
+            supabase.from('daily_routine_templates').select('*')
+          ]);
+
+          if (tasksRes.data && tasksRes.data.length > 0) {
+            setDailyTasks(tasksRes.data);
+          } else if (templatesRes.data && templatesRes.data.length > 0) {
+            const newTasks = templatesRes.data.map(t => ({
+              ...t,
+              id: crypto.randomUUID(),
+              done: false,
+              assignedDate: today,
+              subtasks: t.subtasks?.map((s: any) => ({ ...s, done: false })) || []
+            }));
+            setDailyTasks(newTasks);
+            handleSupabaseError(supabase.from('daily_tasks').insert(newTasks), addToast);
+            addToast('info', 'New day! Your daily routine has been refreshed.');
+          }
+        } catch (err) {
+          console.error('Daily reset error:', err);
+        }
       }
     };
-    const interval = setInterval(checkDate, 60000); // Check every minute
+    const interval = setInterval(checkDate, 60000);
     return () => clearInterval(interval);
-  }, [lastResetDate]);
-
-  useEffect(() => {
-    document.documentElement.classList.remove('dark');
-  }, []);
-
-  const addToast = useCallback((type: Toast['type'], message: string) => {
-    const id = 'toast_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-    const toast: Toast = { id, type, message, duration: 3500 };
-    setToasts(prev => [...prev, toast]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, toast.duration);
-  }, []);
+  }, [lastResetDate, setLastResetDate, setDailyTasks, addToast]);
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -154,7 +182,7 @@ export function AppProvider({ children }: AppProviderProps) {
   const logActivity = useCallback(
     async (type: ActivityLogEntry['type'], message: string, goalId?: number, taskId?: string) => {
       const entry: ActivityLogEntry = {
-        id: 'log_' + Date.now(),
+        id: crypto.randomUUID(),
         type,
         goalId,
         taskId,
@@ -163,10 +191,9 @@ export function AppProvider({ children }: AppProviderProps) {
         date: getTodayIST(),
       };
       setActivityLog(prev => [entry, ...prev]);
-      // Sync to Supabase
-      await supabase.from('activity_log').insert(entry);
+      handleSupabaseError(supabase.from('activity_log').insert(entry), addToast);
     },
-    [setActivityLog]
+    [setActivityLog, addToast]
   );
 
   const getGoalById = useCallback(
@@ -212,8 +239,9 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const handleAddGoalSubmit = useCallback(
     async (openPlanner: boolean) => {
+      const newId = Date.now();
       const newEntry: Goal = {
-        id: Date.now(),
+        id: newId,
         time: getISTTime(),
         icon: GOAL_ICONS[Math.floor(Math.random() * GOAL_ICONS.length)],
         title: newGoalForm.name || 'Untitled Goal',
@@ -228,11 +256,7 @@ export function AppProvider({ children }: AppProviderProps) {
       };
 
       setOnProgressGoals((prev) => [newEntry, ...prev]);
-      
-      // Async Sync to Supabase
-      try {
-        await supabase.from('goals').insert(newEntry);
-      } catch (err) { console.error(err); }
+      handleSupabaseError(supabase.from('goals').insert(newEntry), addToast);
 
       setIsAddGoalModalOpen(false);
       setNewGoalForm(DEFAULT_NEW_GOAL_FORM);
@@ -245,7 +269,7 @@ export function AppProvider({ children }: AppProviderProps) {
           goalTitle: newEntry.title,
           phases: [
             {
-              id: 'np1',
+              id: crypto.randomUUID(),
               name: 'Phase 1 — Research & Planning',
               timeframe: 'Week 1',
               status: 'active',
@@ -257,7 +281,7 @@ export function AppProvider({ children }: AppProviderProps) {
               risks: 'Unclear requirements',
             },
             {
-              id: 'np2',
+              id: crypto.randomUUID(),
               name: 'Phase 2 — Execution',
               timeframe: 'Week 2-3',
               status: 'upcoming',
@@ -271,9 +295,7 @@ export function AppProvider({ children }: AppProviderProps) {
           ],
         };
         setStrategyPlans((prev) => [...prev, newPlan]);
-        
-        // Sync plan to supabase
-        supabase.from('strategy_plans').insert(newPlan);
+        handleSupabaseError(supabase.from('strategy_plans').insert(newPlan), addToast);
 
         setPlanningGoal(newPlan);
         setActivePage('Strategy Planner');
@@ -294,8 +316,10 @@ export function AppProvider({ children }: AppProviderProps) {
       addToast('success', `Goal "${goal.title}" marked as done! 🎉`);
       logActivity('goal_completed', `Completed goal: ${goal.title}`, goalId);
 
-      // Async Sync
-      supabase.from('goals').update({ status: 'Done', progress: '100%', completedAt: Date.now() }).eq('id', goalId);
+      handleSupabaseError(
+        supabase.from('goals').update({ status: 'Done', progress: '100%', completedAt: Date.now() }).eq('id', goalId),
+        addToast
+      );
     },
     [onProgressGoals, selectedGoal, setOnProgressGoals, setDoneGoals, addToast, logActivity]
   );
@@ -310,8 +334,7 @@ export function AppProvider({ children }: AppProviderProps) {
       addToast('info', `Goal "${goal?.title || 'Unknown'}" deleted.`);
       logActivity('goal_deleted', `Deleted goal: ${goal?.title || 'Unknown'}`, goalId);
 
-      // Sync Delete to Supabase
-      supabase.from('goals').delete().eq('id', goalId);
+      handleSupabaseError(supabase.from('goals').delete().eq('id', goalId), addToast);
     },
     [selectedGoal, setOnProgressGoals, setDoneGoals, setStrategyPlans, onProgressGoals, doneGoals, addToast, logActivity]
   );
@@ -326,23 +349,21 @@ export function AppProvider({ children }: AppProviderProps) {
       }
       addToast('success', 'Goal updated successfully!');
 
-      // Sync Update to Supabase
-      supabase.from('goals').update(updates).eq('id', goalId);
+      handleSupabaseError(supabase.from('goals').update(updates).eq('id', goalId), addToast);
     },
     [selectedGoal, setOnProgressGoals, setDoneGoals, addToast]
   );
 
+  // Fixed: accepts task data directly to avoid stale state race condition
   const handleSaveEditTask = useCallback(
-    async () => {
-      if (!editingTask) return;
-      setDailyTasks((prev) => prev.map((t) => (t.id === editingTask.id ? { ...editingTask } : t)));
+    async (taskData: DailyTask) => {
+      setDailyTasks((prev) => prev.map((t) => (t.id === taskData.id ? { ...taskData } : t)));
       setEditingTask(null);
       addToast('success', 'Task updated successfully!');
 
-      // Sync Update to Supabase
-      supabase.from('daily_tasks').update(editingTask).eq('id', editingTask.id);
+      handleSupabaseError(supabase.from('daily_tasks').update(taskData).eq('id', taskData.id), addToast);
     },
-    [editingTask, setDailyTasks, addToast]
+    [setDailyTasks, addToast]
   );
 
   const handleDeleteTask = useCallback(
@@ -351,23 +372,24 @@ export function AppProvider({ children }: AppProviderProps) {
       setEditingTask(null);
       addToast('info', 'Task deleted.');
 
-      supabase.from('daily_tasks').delete().eq('id', id);
+      handleSupabaseError(supabase.from('daily_tasks').delete().eq('id', id), addToast);
     },
     [setDailyTasks, addToast]
   );
 
+  // Fixed: accepts form data directly to avoid stale state race condition
   const handleAddNewTask = useCallback(
-    async () => {
+    async (formData: NewTaskForm) => {
       const newTask: DailyTask = {
-        id: 'dt' + Date.now(),
-        startTime: newTaskForm.startTime || '09:00',
-        endTime: newTaskForm.endTime || '10:00',
-        title: newTaskForm.title || 'New Task',
-        category: newTaskForm.category,
-        note: newTaskForm.note || '',
+        id: crypto.randomUUID(),
+        startTime: formData.startTime || '09:00',
+        endTime: formData.endTime || '10:00',
+        title: formData.title || 'New Task',
+        category: formData.category,
+        note: formData.note || '',
         subtasks: [],
         done: false,
-        linkedGoalId: newTaskForm.linkedGoalId,
+        linkedGoalId: formData.linkedGoalId,
         assignedDate: getTodayIST(),
       };
       setDailyTasks((prev) => [...prev, newTask]);
@@ -376,21 +398,21 @@ export function AppProvider({ children }: AppProviderProps) {
       addToast('success', `Task "${newTask.title}" added!`);
       logActivity('task_created', `Created task: ${newTask.title}`, newTask.linkedGoalId, newTask.id);
 
-      supabase.from('daily_tasks').insert(newTask);
+      handleSupabaseError(supabase.from('daily_tasks').insert(newTask), addToast);
     },
-    [newTaskForm, setDailyTasks, addToast, logActivity]
+    [setDailyTasks, addToast, logActivity]
   );
 
   const handleAddEvent = useCallback(
     async (event: Omit<ScheduledEvent, 'id'>) => {
       const newEvent: ScheduledEvent = {
         ...event,
-        id: 'evt_' + Date.now(),
+        id: crypto.randomUUID(),
       };
       setScheduledEvents(prev => [...prev, newEvent]);
       addToast('success', `Event "${newEvent.title}" scheduled!`);
 
-      supabase.from('scheduled_events').insert(newEvent);
+      handleSupabaseError(supabase.from('scheduled_events').insert(newEvent), addToast);
     },
     [setScheduledEvents, addToast]
   );
@@ -400,7 +422,7 @@ export function AppProvider({ children }: AppProviderProps) {
       setScheduledEvents(prev => prev.filter(e => e.id !== id));
       addToast('info', 'Event removed.');
 
-      supabase.from('scheduled_events').delete().eq('id', id);
+      handleSupabaseError(supabase.from('scheduled_events').delete().eq('id', id), addToast);
     },
     [setScheduledEvents, addToast]
   );
@@ -412,7 +434,7 @@ export function AppProvider({ children }: AppProviderProps) {
         const newProgress = `${newPct}%`;
         if (goal.progress !== newProgress) {
           const upd = { ...goal, progress: newProgress };
-          supabase.from('goals').update({ progress: newProgress }).eq('id', goal.id);
+          handleSupabaseError(supabase.from('goals').update({ progress: newProgress }).eq('id', goal.id));
           return upd;
         }
         return goal;

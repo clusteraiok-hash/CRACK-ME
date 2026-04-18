@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { AppProvider, useApp } from '@/context';
 import { ErrorBoundary } from '@/components';
 import {
@@ -18,6 +19,10 @@ import {
   StrategyPlanner,
   Scheduling,
 } from '@/pages';
+import { Landing } from '@/pages/Landing';
+import { Login, Signup } from '@/pages/Auth';
+
+type AppRoute = 'landing' | 'login' | 'signup' | 'dashboard';
 
 function PageContent() {
   const { activePage } = useApp();
@@ -53,7 +58,7 @@ function PageContent() {
   );
 }
 
-function AppContent() {
+function DashboardContent() {
   const { toasts, removeToast } = useApp();
 
   return (
@@ -71,12 +76,67 @@ function AppContent() {
   );
 }
 
+function AuthenticatedApp() {
+  return (
+    <AppProvider>
+      <DashboardContent />
+    </AppProvider>
+  );
+}
+
+function AppRouter() {
+  const { user, loading } = useAuth();
+  const [route, setRoute] = useState<AppRoute>(user ? 'dashboard' : 'landing');
+
+  // Sync route when auth state changes
+  React.useEffect(() => {
+    if (user && (route === 'landing' || route === 'login' || route === 'signup')) {
+      setRoute('dashboard');
+    }
+    if (!user && !loading && route === 'dashboard') {
+      setRoute('landing');
+    }
+  }, [user, loading, route]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f0fdf4] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-1">
+            <span className="text-[#bef264] text-lg">■</span>
+            <span className="ml-1 uppercase tracking-[0.15em] text-sm font-black text-[#022c22]">Clauseal</span>
+            <span className="text-[#bef264] font-light -mt-2 ml-0.5">+</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 bg-[#022c22]/30 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-2 h-2 bg-[#022c22]/30 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 bg-[#022c22]/30 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <AuthenticatedApp />;
+  }
+
+  switch (route) {
+    case 'login':
+      return <Login onNavigate={(page) => setRoute(page)} />;
+    case 'signup':
+      return <Signup onNavigate={(page) => setRoute(page)} />;
+    default:
+      return <Landing onNavigate={(page) => setRoute(page)} />;
+  }
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

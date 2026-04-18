@@ -113,6 +113,7 @@ export const Report = memo(function Report() {
         </div>
       </div>
 
+      <div className="px-12 pt-10 pb-20">
         <div className="grid grid-cols-[120px_1fr_100px_100px] gap-8 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 border-b border-[#dcfce7] pb-4">
           <div>Category</div>
           <div>Goal breakdown</div>
@@ -237,6 +238,7 @@ export const Report = memo(function Report() {
             </div>
           </div>
         </div>
+      </div>
     </>
   );
 });

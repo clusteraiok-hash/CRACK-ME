@@ -83,7 +83,7 @@ export const Scheduling = memo(function Scheduling() {
             style={{
               top: `${top}px`,
               height: `${Math.max(duration, 38)}px`,
-              backgroundColor: '#white',
+              backgroundColor: '#ffffff',
               borderLeft: `4px solid ${evt.color}`,
               zIndex: 15,
             }}

@@ -4,7 +4,7 @@ import { useApp } from '@/context';
 import { CATEGORY_LIST } from '@/constants';
 
 export function AddTaskModal() {
-  const { isAddTaskOpen, setIsAddTaskOpen, handleAddNewTask, setNewTaskForm } = useApp();
+  const { isAddTaskOpen, setIsAddTaskOpen, handleAddNewTask } = useApp();
   const [taskForm, setTaskForm] = useState({
     title: '',
     startTime: '09:00',
@@ -15,14 +15,14 @@ export function AddTaskModal() {
 
   const handleSubmit = () => {
     if (!taskForm.title) return;
-    setNewTaskForm({
+    // Pass form data directly — no race condition
+    handleAddNewTask({
       title: taskForm.title,
       startTime: taskForm.startTime,
       endTime: taskForm.endTime,
       category: taskForm.category,
       note: taskForm.note,
     });
-    handleAddNewTask();
     setTaskForm({ title: '', startTime: '09:00', endTime: '10:00', category: 'Work', note: '' });
     setIsAddTaskOpen(false);
   };

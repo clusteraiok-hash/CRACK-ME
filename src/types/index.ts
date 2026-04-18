@@ -168,9 +168,9 @@ export interface AppContextType extends AppState {
   handleAddGoalSubmit: (openPlanner: boolean) => void;
   handleMarkDone: (goalId: number) => void;
   handleDeleteGoal: (goalId: number) => void;
-  handleSaveEditTask: () => void;
+  handleSaveEditTask: (taskData: DailyTask) => void;
   handleDeleteTask: (id: string) => void;
-  handleAddNewTask: () => void;
+  handleAddNewTask: (formData: NewTaskForm) => void;
   handleEditGoal: (goalId: number, updates: Partial<Goal>) => void;
   addToast: (type: Toast['type'], message: string) => void;
   removeToast: (id: string) => void;
