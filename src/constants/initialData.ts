@@ -3,7 +3,7 @@ import type { DailyTask, Goal, HelpItem, StrategyPlan } from '@/types';
 export const INITIAL_DAILY_TASKS: DailyTask[] = [
   {
     id: 'd1',
-    startTime: '06:00 - 06:30',
+    startTime: '06:00',
     endTime: '06:30',
     title: 'Morning Meditation',
     category: 'Wellness',
@@ -16,7 +16,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
   },
   {
     id: 'd2',
-    startTime: '07:00 - 08:00',
+    startTime: '07:00',
     endTime: '08:00',
     title: 'Gym Workout',
     category: 'Fitness',
@@ -30,7 +30,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
   },
   {
     id: 'd3',
-    startTime: '08:30 - 09:00',
+    startTime: '08:30',
     endTime: '09:00',
     title: 'Team Stand-up Meeting',
     category: 'Meeting',
@@ -43,7 +43,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
   },
   {
     id: 'd4',
-    startTime: '09:00 - 11:00',
+    startTime: '09:00',
     endTime: '11:00',
     title: 'Code Review & PR Merge',
     category: 'Development',
@@ -57,7 +57,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
   },
   {
     id: 'd5',
-    startTime: '12:00 - 13:00',
+    startTime: '12:00',
     endTime: '13:00',
     title: 'Lunch Break & Walk',
     category: 'Food',
@@ -70,7 +70,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
   },
   {
     id: 'd6',
-    startTime: '14:00 - 15:30',
+    startTime: '14:00',
     endTime: '15:30',
     title: 'Client Presentation Prep',
     category: 'Work',
@@ -84,7 +84,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
   },
   {
     id: 'd7',
-    startTime: '16:00 - 17:00',
+    startTime: '16:00',
     endTime: '17:00',
     title: 'Read 30 Pages of Book',
     category: 'Learning',
@@ -97,7 +97,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
   },
   {
     id: 'd8',
-    startTime: '18:00 - 19:00',
+    startTime: '18:00',
     endTime: '19:00',
     title: 'Instagram Content Creation',
     category: 'Social media',
@@ -111,7 +111,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
   },
   {
     id: 'd9',
-    startTime: '21:00 - 21:30',
+    startTime: '21:00',
     endTime: '21:30',
     title: 'Journal & Reflection',
     category: 'Creative',

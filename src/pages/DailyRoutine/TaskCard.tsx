@@ -94,11 +94,13 @@ export const TaskCard = memo(function TaskCard({ task, onToggle, onToggleSubtask
         </div>
 
         <div
-          className={`text-sm flex-shrink-0 px-3 py-1 rounded-full border border-transparent ${
+          className={`text-[11px] flex-shrink-0 px-3 py-1 rounded-full border border-transparent flex items-center gap-1.5 ${
             task.done ? 'text-slate-400 bg-[#f0fdf4]' : 'text-[#022c22] bg-[#f0fdf4] border-[#dcfce7] font-bold'
           }`}
         >
-          {task.startTime}
+          <span>{task.startTime}</span>
+          <span className="opacity-30">→</span>
+          <span>{task.endTime || '…'}</span>
         </div>
 
         <button

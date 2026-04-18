@@ -7,6 +7,7 @@ export function EditTaskModal() {
   const [taskForm, setTaskForm] = useState({
     title: '',
     startTime: '09:00',
+    endTime: '10:00',
     category: 'Work',
   });
 
@@ -15,6 +16,7 @@ export function EditTaskModal() {
       setTaskForm({
         title: editingTask.title,
         startTime: editingTask.startTime,
+        endTime: editingTask.endTime || '10:00',
         category: editingTask.category || 'Work',
       });
     }
@@ -26,6 +28,7 @@ export function EditTaskModal() {
       ...editingTask,
       title: taskForm.title,
       startTime: taskForm.startTime,
+      endTime: taskForm.endTime,
       category: taskForm.category,
     });
     handleSaveEditTask();
@@ -57,18 +60,28 @@ export function EditTaskModal() {
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#022c22]/40 mb-3">Category</label>
-            <select
-              value={taskForm.category}
-              onChange={(e) => setTaskForm({ ...taskForm, category: e.target.value })}
-              className="w-full bg-[#f0fdf4] border border-[#dcfce7] rounded-xl px-4 py-3.5 text-sm outline-none text-[#022c22] font-bold cursor-pointer transition-all focus:border-[#022c22]/30 appearance-none"
-            >
+            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#022c22]/40 mb-3">Termination Time</label>
+            <input
+              type="time"
+              value={taskForm.endTime}
+              onChange={(e) => setTaskForm({ ...taskForm, endTime: e.target.value })}
+              className="w-full bg-[#f0fdf4] border border-[#dcfce7] rounded-xl px-4 py-3.5 text-sm outline-none text-[#022c22] font-bold cursor-pointer transition-all focus:border-[#022c22]/30"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#022c22]/40 mb-3">Category</label>
+          <select
+            value={taskForm.category}
+            onChange={(e) => setTaskForm({ ...taskForm, category: e.target.value })}
+            className="w-full bg-[#f0fdf4] border border-[#dcfce7] rounded-xl px-4 py-3.5 text-sm outline-none text-[#022c22] font-bold cursor-pointer transition-all focus:border-[#022c22]/30 appearance-none"
+          >
               <option value="Work">Work</option>
               <option value="Personal">Personal</option>
               <option value="Health">Health</option>
               <option value="Learning">Learning</option>
-            </select>
-          </div>
+          </select>
         </div>
       </div>
 
