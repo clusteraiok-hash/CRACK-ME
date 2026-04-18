@@ -67,36 +67,51 @@ export function AppProvider({ children }: AppProviderProps) {
   useEffect(() => {
     const fetchSupabaseData = async () => {
       try {
-        const [goalsRes, tasksRes, plansRes, logsRes, eventsRes] = await Promise.all([
+        const today = getTodayIST();
+        
+        // Fetch everything including today's tasks
+        const [goalsRes, tasksRes, plansRes, logsRes, eventsRes, templatesRes] = await Promise.all([
           supabase.from('goals').select('*'),
-          supabase.from('daily_tasks').select('*'),
+          supabase.from('daily_tasks').select('*').eq('assigned_date', today),
           supabase.from('strategy_plans').select('*'),
           supabase.from('activity_log').select('*'),
-          supabase.from('scheduled_events').select('*')
+          supabase.from('scheduled_events').select('*'),
+          supabase.from('daily_routine_templates').select('*')
         ]);
 
-        if (goalsRes.data && goalsRes.data.length > 0) {
-          const active = goalsRes.data.filter(g => g.status === 'Active');
-          const done = goalsRes.data.filter(g => g.status === 'Done');
-          setOnProgressGoals(active);
-          setDoneGoals(done);
+        if (goalsRes.data) {
+          setOnProgressGoals(goalsRes.data.filter(g => g.status === 'Active'));
+          setDoneGoals(goalsRes.data.filter(g => g.status === 'Done'));
         }
         
+        if (plansRes.data) setStrategyPlans(plansRes.data);
+        if (logsRes.data) setActivityLog(logsRes.data.sort((a,b) => b.timestamp - a.timestamp));
+        if (eventsRes.data) setScheduledEvents(eventsRes.data);
+
+        // DAILY RESET / SEEDING LOGIC
         if (tasksRes.data && tasksRes.data.length > 0) {
+          // Tasks already exist for today
           setDailyTasks(tasksRes.data);
+        } else if (templatesRes.data && templatesRes.data.length > 0) {
+          // No tasks for today - Seed from templates
+          const newTasks = templatesRes.data.map(t => ({
+            ...t,
+            id: 'dt' + Date.now() + Math.random().toString(36).slice(2, 5),
+            done: false,
+            assignedDate: today,
+            // Deep copy subtasks and reset done flag
+            subtasks: t.subtasks?.map((s: any) => ({ ...s, done: false })) || []
+          }));
+          
+          setDailyTasks(newTasks);
+          
+          // Sync new tasks to Supabase
+          await supabase.from('daily_tasks').insert(newTasks);
+          
+          addToast('info', 'Your daily routine has been refreshed for today!');
         }
         
-        if (plansRes.data && plansRes.data.length > 0) {
-          setStrategyPlans(plansRes.data);
-        }
-
-        if (logsRes.data && logsRes.data.length > 0) {
-          setActivityLog(logsRes.data.sort((a,b) => b.timestamp - a.timestamp));
-        }
-
-        if (eventsRes.data && eventsRes.data.length > 0) {
-          setScheduledEvents(eventsRes.data);
-        }
+        setLastResetDate(today);
 
       } catch (err) {
         console.error("Error fetching data from Supabase", err);
@@ -107,16 +122,17 @@ export function AppProvider({ children }: AppProviderProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Daily Reset Effect
+  // Daily Check Effect (handles mid-day cross-over)
   useEffect(() => {
-    const todayIST = getTodayIST();
-    if (todayIST !== lastResetDate) {
-      setDailyTasks((prev) =>
-        prev.map((task) => ({ ...task, done: false, subtasks: task.subtasks.map((sub) => ({ ...sub, done: false })) }))
-      );
-      setLastResetDate(todayIST);
-    }
-  }, [lastResetDate, setDailyTasks, setLastResetDate]);
+    const checkDate = () => {
+      const today = getTodayIST();
+      if (today !== lastResetDate) {
+        window.location.reload(); // Simple way to trigger re-hydration and seeding
+      }
+    };
+    const interval = setInterval(checkDate, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [lastResetDate]);
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
