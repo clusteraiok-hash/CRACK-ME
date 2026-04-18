@@ -70,10 +70,9 @@ export const Signup = memo(function Signup({ onNavigate }: SignupProps) {
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#bef264]/5 rounded-full blur-3xl" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-1 mb-16">
-            <span className="text-[#bef264] text-sm">■</span>
-            <span className="ml-1 uppercase tracking-[0.15em] text-xs font-black text-white">Clauseal</span>
-            <span className="text-[#bef264] font-light -mt-1.5 ml-0.5 text-sm">+</span>
+          <div className="flex items-center gap-2 mb-16">
+            <iconify-icon icon="solar:verified-check-bold" width="20" height="20" className="text-[#bef264]" />
+            <span className="uppercase tracking-[0.15em] text-xs font-black text-white">CRACK-ME</span>
           </div>
 
           <h2 className="text-4xl font-black tracking-tighter text-white leading-tight mb-6">

@@ -103,10 +103,9 @@ function AppRouter() {
     return (
       <div className="min-h-screen bg-[#f0fdf4] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-1">
-            <span className="text-[#bef264] text-lg">■</span>
-            <span className="ml-1 uppercase tracking-[0.15em] text-sm font-black text-[#022c22]">Clauseal</span>
-            <span className="text-[#bef264] font-light -mt-2 ml-0.5">+</span>
+          <div className="flex items-center gap-2">
+            <iconify-icon icon="solar:verified-check-bold" width="18" height="18" className="text-[#bef264]" />
+            <span className="uppercase tracking-[0.15em] text-sm font-black text-[#022c22]">CRACK-ME</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 bg-[#022c22]/30 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

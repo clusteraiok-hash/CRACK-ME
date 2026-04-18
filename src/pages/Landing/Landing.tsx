@@ -21,10 +21,9 @@ export const Landing = memo(function Landing({ onNavigate }: LandingProps) {
       {/* ─── Navbar ─────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#dcfce7]">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-1 font-bold tracking-tighter text-lg">
-            <span className="text-[#bef264] text-sm">■</span>
-            <span className="ml-1 uppercase tracking-[0.15em] text-xs font-black text-[#022c22]">Clauseal</span>
-            <span className="text-[#bef264] font-light -mt-1.5 ml-0.5 text-sm">+</span>
+          <div className="flex items-center gap-2 font-bold tracking-tighter text-lg">
+            <iconify-icon icon="solar:verified-check-bold" width="18" height="18" className="text-[#bef264]" />
+            <span className="uppercase tracking-[0.15em] text-xs font-black text-[#022c22]">CRACK-ME</span>
           </div>
 
           <div className="hidden md:flex items-center gap-8">
@@ -81,7 +80,7 @@ export const Landing = memo(function Landing({ onNavigate }: LandingProps) {
             </h1>
 
             <p className="text-lg text-[#022c22]/60 leading-relaxed max-w-lg mb-10 font-medium">
-              Clauseal+ transforms your ambitions into structured strategies with daily routines, milestone tracking, and AI-powered insights — all in one premium dashboard.
+              CRACK-ME transforms your ambitions into structured strategies with daily routines, milestone tracking, and AI-powered insights — all in one premium dashboard.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 mb-8">
@@ -265,7 +264,7 @@ export const Landing = memo(function Landing({ onNavigate }: LandingProps) {
               Ready to transform your productivity?
             </h2>
             <p className="text-[#bef264]/60 mb-10 text-lg font-medium max-w-xl mx-auto">
-              Join thousands of achievers who track their goals, build habits, and execute strategies with Clauseal+.
+              Join thousands of achievers who track their goals, build habits, and execute strategies with CRACK-ME.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <button
@@ -288,12 +287,12 @@ export const Landing = memo(function Landing({ onNavigate }: LandingProps) {
       {/* ─── Footer ─────────────────────────────────────────────── */}
       <footer className="border-t border-[#dcfce7] bg-white py-8 px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-1 text-sm">
-            <span className="text-[#bef264] text-xs">■</span>
-            <span className="ml-1 uppercase tracking-[0.15em] text-[10px] font-black text-[#022c22]/40">Clauseal+</span>
+          <div className="flex items-center gap-2 text-sm">
+            <iconify-icon icon="solar:verified-check-bold" width="12" height="12" className="text-[#bef264]" />
+            <span className="uppercase tracking-[0.15em] text-[10px] font-black text-[#022c22]/40">CRACK-ME</span>
           </div>
           <div className="text-xs text-[#022c22]/30 font-medium">
-            © {new Date().getFullYear()} Clauseal+. All rights reserved.
+            © {new Date().getFullYear()} CRACK-ME. All rights reserved.
           </div>
         </div>
       </footer>

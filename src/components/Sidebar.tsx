@@ -23,10 +23,9 @@ export const Sidebar = memo(function Sidebar() {
   return (
     <aside className="w-[300px] flex-shrink-0 flex flex-col justify-between pt-12 pb-6 px-6 overflow-y-auto bg-[#022c22] text-white">
       <div>
-        <div className="flex items-center gap-1 mb-8 px-4 font-bold tracking-tighter text-2xl">
-          <span className="text-[#bef264]">■</span>
-          <span className="ml-2 uppercase tracking-[0.2em] text-sm font-black">Clauseal</span>
-          <span className="text-[#d4ff00] font-light -mt-2 ml-1">+</span>
+        <div className="flex items-center gap-2 mb-8 px-4 font-bold tracking-tighter text-2xl">
+          <iconify-icon icon="solar:verified-check-bold" width="32" height="32" className="text-[#bef264]" />
+          <span className="uppercase tracking-[0.2em] text-sm font-black">CRACK-ME</span>
         </div>
 
         <nav className="space-y-1" role="navigation" aria-label="Main navigation">
