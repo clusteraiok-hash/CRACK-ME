@@ -29,37 +29,38 @@ export const Scheduling = memo(function Scheduling() {
 
   const renderTasksForDay = (dayIndex: number) => {
     const date = weekDates[dayIndex];
-    const isToday = date.toDateString() === new Date().toDateString();
-    if (!isToday) return null;
+    const dateStr = toDateStr(date);
 
-    return dailyTasks.map((task) => {
-      const timeStr = task.startTime.split(' - ')[0].split(':');
-      if (timeStr.length < 2) return null;
-      const startHour = parseInt(timeStr[0], 10);
-      const startMin = parseInt(timeStr[1], 10) || 0;
-      
-      if (startHour < 8 || startHour > 19) return null;
-      const top = (startHour - 8) * 64 + (startMin / 60) * 64 + 4;
-      
-      return (
-        <div
-          key={task.id}
-          className={`absolute left-1 right-1 rounded-xl p-3 text-[10px] shadow-sm border border-[#dcfce7] overflow-hidden transition-all hover:scale-[1.02] cursor-pointer ${
-            task.done ? 'opacity-40' : ''
-          }`}
-          style={{
-            top: `${top}px`,
-            height: '52px',
-            backgroundColor: task.done ? 'transparent' : '#f0fdf4',
-            borderLeft: `4px solid ${task.done ? '#cbd5e1' : '#022c22'}`,
-            zIndex: 10,
-          }}
-        >
-          <div className={`font-black uppercase tracking-tighter truncate ${task.done ? 'line-through text-slate-400' : 'text-[#022c22]'}`}>{task.title}</div>
-          <div className="font-bold text-[#022c22]/40 mt-0.5">{task.startTime}</div>
-        </div>
-      );
-    });
+    return dailyTasks
+      .filter((task) => task.assignedDate === dateStr)
+      .map((task) => {
+        const timeParts = task.startTime.split(' - ')[0].split(':');
+        if (timeParts.length < 2) return null;
+        const startHour = parseInt(timeParts[0], 10);
+        const startMin = parseInt(timeParts[1], 10) || 0;
+        
+        if (startHour < 8 || startHour > 19) return null;
+        const top = (startHour - 8) * 64 + (startMin / 60) * 64 + 4;
+        
+        return (
+          <div
+            key={task.id}
+            className={`absolute left-1 right-1 rounded-xl p-3 text-[10px] shadow-sm border border-[#dcfce7] overflow-hidden transition-all hover:scale-[1.02] cursor-pointer ${
+              task.done ? 'opacity-40' : ''
+            }`}
+            style={{
+              top: `${top}px`,
+              height: '52px',
+              backgroundColor: task.done ? 'transparent' : '#f0fdf4',
+              borderLeft: `4px solid ${task.done ? '#cbd5e1' : '#022c22'}`,
+              zIndex: 10,
+            }}
+          >
+            <div className={`font-black uppercase tracking-tighter truncate ${task.done ? 'line-through text-slate-400' : 'text-[#022c22]'}`}>{task.title}</div>
+            <div className="font-bold text-[#022c22]/40 mt-0.5">{task.startTime}</div>
+          </div>
+        );
+      });
   };
 
   const renderEventsForDay = (dayIndex: number) => {
@@ -215,35 +216,43 @@ export const Scheduling = memo(function Scheduling() {
 
             {/* Event Overlay */}
             <div className="absolute top-0 left-[100px] right-0 bottom-0 grid grid-cols-7 pointer-events-none">
-              {DAYS.map((_, i) => (
-                <div key={i} className="relative border-r border-[#dcfce7]/30 last:border-r-0 pointer-events-auto">
-                  <div className="absolute top-2 left-2 right-2 flex flex-col gap-1 z-20">
-                    {renderGoalsForDay(i)}
-                  </div>
-                  <div className="h-full relative mt-12">
-                    {renderTasksForDay(i)}
-                    {renderEventsForDay(i)}
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Timeline Indicator */}
-            {(() => {
-              const nowH = new Date().getHours();
-              const nowM = new Date().getMinutes();
-              if (nowH >= 8 && nowH <= 19) {
+              {DAYS.map((_, i) => {
+                const date = weekDates[i];
                 return (
-                  <div
-                    className="absolute left-0 right-0 border-t border-[#10b981] z-30 pointer-events-none"
-                    style={{ top: `${(nowH - 8) * 64 + (nowM / 60) * 64}px` }}
-                  >
-                    <div className="w-2 h-2 rounded-full bg-[#10b981] absolute -left-1 -top-1 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                  <div key={i} className="relative border-r border-[#dcfce7]/30 last:border-r-0 pointer-events-auto">
+                    <div className="absolute top-2 left-2 right-2 flex flex-col gap-1 z-20">
+                      {renderGoalsForDay(i)}
+                    </div>
+                    <div className="h-full relative mt-12">
+                      {renderTasksForDay(i)}
+                      {renderEventsForDay(i)}
+                      
+                      {/* Timeline Indicator */}
+                      {(() => {
+                        const now = new Date();
+                        const todayStr = toDateStr(now);
+                        if (toDateStr(date) === todayStr) {
+                          const nowH = now.getHours();
+                          const nowM = now.getMinutes();
+                          if (nowH >= 8 && nowH <= 19) {
+                            return (
+                              <div
+                                className="absolute left-0 right-0 border-t-2 border-rose-500 z-30 pointer-events-none"
+                                style={{ top: `${(nowH - 8) * 64 + (nowM / 60) * 64}px` }}
+                              >
+                                <div className="w-2 h-2 rounded-full bg-rose-500 absolute -left-1 -top-1 shadow-[0_0_10px_rgba(244,63,94,0.5)]" />
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </div>
                 );
-              }
-              return null;
-            })()}
+              })}
+            </div>
+            
           </div>
         </div>
       </div>

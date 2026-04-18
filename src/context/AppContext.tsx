@@ -72,7 +72,7 @@ export function AppProvider({ children }: AppProviderProps) {
         // Fetch everything including today's tasks
         const [goalsRes, tasksRes, plansRes, logsRes, eventsRes, templatesRes] = await Promise.all([
           supabase.from('goals').select('*'),
-          supabase.from('daily_tasks').select('*').eq('assigned_date', today),
+          supabase.from('daily_tasks').select('*'),
           supabase.from('strategy_plans').select('*'),
           supabase.from('activity_log').select('*'),
           supabase.from('scheduled_events').select('*'),
