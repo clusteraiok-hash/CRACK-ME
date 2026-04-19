@@ -83,7 +83,8 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
     const newPhase: Phase = {
       id: 'ph' + Date.now(),
       name: 'New Phase',
-      timeframe: 'TBD',
+      timeframe: 'Week TBD',
+      dayAllocation: 7,
       status: 'upcoming',
       milestones: [{ text: 'Define milestone', done: false }],
       keyActions: '',
@@ -94,7 +95,7 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
   }, [planningGoal, updatePlan, addToast]);
 
   const updatePhase = useCallback(
-    (phaseId: string, field: keyof Phase, value: string) => {
+    (phaseId: string, field: keyof Phase, value: string | number) => {
       if (!planningGoal) return;
       updatePlan({
         ...planningGoal,
@@ -327,18 +328,21 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
                     aria-label="Phase name"
                   />
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 bg-[#f0fdf4] border border-[#dcfce7] px-4 py-2 rounded-xl">
-                    <iconify-icon icon="solar:clock-circle-linear" width="16" height="16" className="text-[#022c22]/40" />
-                    <input
-                      type="text"
-                      value={phase.timeframe}
-                      onChange={(e) => updatePhase(phase.id, 'timeframe', e.target.value)}
-                      className="text-xs font-bold outline-none bg-transparent text-[#022c22] w-24"
-                      aria-label="Timeframe"
-                    />
-                  </div>
-                  <div className="text-sm font-black text-[#022c22] ml-4">{phasePct}%</div>
+<div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 bg-[#f0fdf4] border border-[#dcfce7] px-4 py-2 rounded-xl">
+                      <iconify-icon icon="solar:calendar-linear" width="16" height="16" className="text-[#022c22]/40" />
+                      <input
+                        type="number"
+                        min="1"
+                        max="90"
+                        value={phase.dayAllocation || phase.timeframe.replace(/\D/g, '') || 7}
+                        onChange={(e) => updatePhase(phase.id, 'dayAllocation', parseInt(e.target.value) || 7)}
+                        className="text-xs font-bold outline-none bg-transparent text-[#022c22] w-12"
+                        aria-label="Day allocation"
+                      />
+                      <span className="text-[10px] text-[#022c22]/40 uppercase">days</span>
+                    </div>
+                    <div className="text-sm font-black text-[#022c22] ml-4">{phasePct}%</div>
                   <button
                     onClick={() => deletePhase(phase.id)}
                     className="text-slate-200 hover:text-rose-500 transition-colors ml-4"

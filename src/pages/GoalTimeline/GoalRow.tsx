@@ -1,24 +1,10 @@
 import type { Goal } from '@/types';
 import { memo } from 'react';
 
-function getDaysRemaining(dueDate: string): { days: number; isOverdue: boolean } {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+function parseDateStr(dateStr: string): Date | null {
+  if (!dateStr || dateStr === 'N/A') return null;
   
-  if (!dueDate || dueDate === 'N/A') {
-    return { days: 0, isOverdue: false };
-  }
-  
-  const lowerDue = dueDate.toLowerCase();
-  
-  if (lowerDue.includes('today')) {
-    return { days: 0, isOverdue: false };
-  } else if (lowerDue.includes('tomorrow')) {
-    return { days: 1, isOverdue: false };
-  }
-  
-  // Try to parse date string
-  const monthsMap: Record<string, number> = {
+  const months: Record<string, number> = {
     'jan': 0, 'january': 0,
     'feb': 1, 'february': 1,
     'mar': 2, 'march': 2,
@@ -33,41 +19,47 @@ function getDaysRemaining(dueDate: string): { days: number; isOverdue: boolean }
     'dec': 11, 'december': 11
   };
   
-  // Pattern: "25 Apr, 2026" or "25 Apr 2026" or "Apr 25, 2026"
-  let day = 0, month = 0, year = now.getFullYear();
-  let found = false;
+  const cleanDate = dateStr.trim();
+  let day = 0, monthIdx = 0, year = 2026;
   
-  // Try "25 Apr, 2026" format
-  const match1 = dueDate.match(/(\d{1,2})\s+([a-zA-Z]+),?\s*(\d{4})?/);
-  if (match1) {
-    day = parseInt(match1[1], 10);
-    const monthStr = match1[2].toLowerCase();
-    month = monthsMap[monthStr] ?? -1;
-    if (match1[3]) year = parseInt(match1[3], 10);
-    found = month >= 0;
-  }
-  
-  // Try "Apr 25, 2026" format  
-  if (!found) {
-    const match2 = dueDate.match(/([a-zA-Z]+)\s+(\d{1,2}),?\s*(\d{4})?/);
-    if (match2) {
-      const monthStr = match2[1].toLowerCase();
-      month = monthsMap[monthStr] ?? -1;
-      day = parseInt(match2[2], 10);
-      if (match2[3]) year = parseInt(match2[3], 10);
-      found = month >= 0;
+  const parts = cleanDate.split(/[\s,]+/);
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    if (/^\d{1,2}$/.test(p) && day === 0) {
+      day = parseInt(p, 10);
+    } else if (/^[a-zA-Z]{3,}$/.test(p)) {
+      const m = p.toLowerCase().replace(/[^a-z]/g, '').substring(0, 3);
+      if (months[m] !== undefined) monthIdx = months[m];
+    } else if (/^\d{4}$/.test(p)) {
+      year = parseInt(p, 10);
     }
   }
   
-  if (!found || day < 1 || day > 31) {
-    return { days: 0, isOverdue: false };
+  if (day === 0) return null;
+  return new Date(year, monthIdx, day);
+}
+
+function getDaysRemaining(startDate: string, dueDate: string): { totalDays: number; remainingDays: number; isOverdue: boolean } {
+  const today = new Date(2026, 3, 19); // April 19, 2026
+  
+  if (!dueDate || dueDate === 'N/A') {
+    return { totalDays: 0, remainingDays: 0, isOverdue: false };
   }
   
-  const targetDate = new Date(year, month, day);
-  const diffTime = targetDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const start = parseDateStr(startDate) || today;
+  const end = parseDateStr(dueDate);
   
-  return { days: diffDays, isOverdue: diffDays < 0 };
+  if (!end) {
+    return { totalDays: 0, remainingDays: 0, isOverdue: false };
+  }
+  
+  const totalMs = end.getTime() - start.getTime();
+  const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24));
+  
+  const remainingMs = end.getTime() - today.getTime();
+  const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+  
+  return { totalDays, remainingDays, isOverdue: remainingDays < 0 };
 }
 
 interface GoalRowProps {
@@ -78,7 +70,8 @@ interface GoalRowProps {
 
 export const GoalRow = memo(function GoalRow({ goal, isActive, onSelect }: GoalRowProps) {
   const progressNum = parseInt(goal.progress) || 0;
-  const { days, isOverdue } = getDaysRemaining(goal.dueDate);
+  const { totalDays, remainingDays, isOverdue } = getDaysRemaining(goal.startDate, goal.dueDate);
+  const displayDays = remainingDays > 0 ? remainingDays : (isOverdue ? Math.abs(remainingDays) : totalDays);
 
   return (
     <div
@@ -125,11 +118,11 @@ export const GoalRow = memo(function GoalRow({ goal, isActive, onSelect }: GoalR
       </div>
       <div className={`text-[10px] font-black tracking-widest uppercase ${isActive ? 'text-[#022c22]/60' : 'text-[#022c22]'}`}>{goal.dueDate}</div>
       <div className="flex flex-col items-center">
-        <div className={`text-[22px] font-black ${isOverdue ? 'text-rose-500' : days <= 3 ? 'text-amber-500' : 'text-[#022c22]'}`}>
-          {isOverdue ? Math.abs(days) : days}
+        <div className={`text-[22px] font-black ${isOverdue ? 'text-rose-500' : displayDays <= 3 ? 'text-amber-500' : 'text-[#022c22]'}`}>
+          {displayDays}
         </div>
         <div className={`text-[8px] font-black uppercase ${isOverdue ? 'text-rose-400' : 'text-slate-400'}`}>
-          {isOverdue ? 'days ago' : days === 1 ? 'day left' : 'days left'}
+          {isOverdue ? 'days ago' : 'days left'}
         </div>
       </div>
     </div>

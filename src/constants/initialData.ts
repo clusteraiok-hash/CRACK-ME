@@ -234,11 +234,14 @@ export const INITIAL_STRATEGY_PLANS: StrategyPlan[] = [
   {
     goalId: 2,
     goalTitle: 'Android Studio Course',
+    startDate: '01 Apr, 2026',
+    endDate: '15 May, 2026',
     phases: [
       {
         id: 'p1',
         name: 'Foundation',
         timeframe: 'Week 1-2',
+        dayAllocation: 14,
         status: 'done',
         milestones: [
           { text: 'Install Android Studio & configure SDK', done: true },
@@ -252,6 +255,7 @@ export const INITIAL_STRATEGY_PLANS: StrategyPlan[] = [
         id: 'p2',
         name: 'Core Concepts',
         timeframe: 'Week 3-4',
+        dayAllocation: 14,
         status: 'active',
         milestones: [
           { text: 'Learn Activity lifecycle', done: true },
@@ -265,6 +269,7 @@ export const INITIAL_STRATEGY_PLANS: StrategyPlan[] = [
         id: 'p3',
         name: 'Intermediate Projects',
         timeframe: 'Week 5-7',
+        dayAllocation: 21,
         status: 'upcoming',
         milestones: [
           { text: 'Build a To-Do app with Room DB', done: false },
@@ -278,6 +283,7 @@ export const INITIAL_STRATEGY_PLANS: StrategyPlan[] = [
         id: 'p4',
         name: 'Final Capstone',
         timeframe: 'Week 8',
+        dayAllocation: 7,
         status: 'upcoming',
         milestones: [
           { text: 'Design capstone app UI', done: false },

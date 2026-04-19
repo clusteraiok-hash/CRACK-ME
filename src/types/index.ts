@@ -42,6 +42,9 @@ export interface Phase {
   id: string;
   name: string;
   timeframe: string;
+  dayAllocation?: number;
+  startDate?: string;
+  endDate?: string;
   status: 'done' | 'active' | 'upcoming';
   milestones: Milestone[];
   keyActions: string;
@@ -51,7 +54,10 @@ export interface Phase {
 export interface StrategyPlan {
   goalId: number;
   goalTitle: string;
+  startDate?: string;
+  endDate?: string;
   phases: Phase[];
+  timeframe?: string;
 }
 
 export interface HelpItem {
