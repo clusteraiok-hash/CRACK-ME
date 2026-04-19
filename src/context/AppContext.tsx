@@ -65,6 +65,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const [lastResetDate, setLastResetDate] = useLocalStorage<string>(STORAGE_KEYS.LAST_RESET_DATE, getTodayIST());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const addToast = useCallback((type: Toast['type'], message: string) => {
     const id = crypto.randomUUID();
@@ -85,55 +86,56 @@ export function AppProvider({ children }: AppProviderProps) {
         console.warn('Supabase offline, using local data only');
         setSyncStatus('offline');
         addToast('warning', 'Working offline - data saved locally');
+        setIsHydrated(true);
         return;
       }
 
       try {
         const today = getTodayIST();
         
-        const [goalsRes, tasksRes, plansRes, logsRes, eventsRes, templatesRes] = await Promise.all([
+        const [goalsRes, tasksRes, plansRes, logsRes, eventsRes] = await Promise.all([
           supabase.from('goals').select('*'),
           supabase.from('daily_tasks').select('*'),
           supabase.from('strategy_plans').select('*'),
           supabase.from('activity_log').select('*'),
-          supabase.from('scheduled_events').select('*'),
-          supabase.from('daily_routine_templates').select('*')
+          supabase.from('scheduled_events').select('*')
         ]);
 
-        if (goalsRes.data) {
+        const hasGoalsData = goalsRes.data && goalsRes.data.length > 0;
+        const hasPlansData = plansRes.data && plansRes.data.length > 0;
+        const hasEventsData = eventsRes.data && eventsRes.data.length > 0;
+
+        // Only update from Supabase if there's actual data there
+        // Otherwise keep localStorage data (which was already loaded)
+        if (hasGoalsData) {
           setOnProgressGoals(goalsRes.data.filter(g => g.status === 'Active'));
           setDoneGoals(goalsRes.data.filter(g => g.status === 'Done'));
         }
         
-        if (plansRes.data) setStrategyPlans(plansRes.data);
-        if (logsRes.data) setActivityLog(logsRes.data.sort((a,b) => b.timestamp - a.timestamp));
-        if (eventsRes.data) setScheduledEvents(eventsRes.data);
-
-        // DAILY RESET / SEEDING LOGIC
-        if (tasksRes.data && tasksRes.data.length > 0) {
-          setDailyTasks(tasksRes.data);
-        } else if (templatesRes.data && templatesRes.data.length > 0) {
-          const newTasks = templatesRes.data.map(t => ({
-            ...t,
-            id: crypto.randomUUID(),
-            done: false,
-            assignedDate: today,
-            subtasks: t.subtasks?.map((s: any) => ({ ...s, done: false })) || []
-          }));
-          
-          setDailyTasks(newTasks);
-          await supabase.from('daily_tasks').insert(newTasks);
-          addToast('info', 'Your daily routine has been refreshed for today!');
+        if (hasPlansData) setStrategyPlans(plansRes.data);
+        if (logsRes.data && logsRes.data.length > 0) {
+          setActivityLog(logsRes.data.sort((a,b) => b.timestamp - a.timestamp));
         }
+        if (hasEventsData) setScheduledEvents(eventsRes.data);
+
+        // Tasks: only use Supabase tasks if they exist
+        // Keep localStorage tasks if Supabase is empty
+        const todayTasks = tasksRes.data?.filter(t => t.assignedDate === today) || [];
+        if (todayTasks.length > 0) {
+          setDailyTasks(todayTasks);
+        }
+        // If no Supabase tasks, localStorage tasks remain untouched
         
         setLastResetDate(today);
         setSyncStatus('synced');
+        setIsHydrated(true);
         console.log('Data synced from Supabase');
 
       } catch (err) {
         console.error("Error fetching data from Supabase", err);
         setSyncStatus('error');
         addToast('error', 'Sync failed - using local data');
+        setIsHydrated(true);
       }
     };
 
@@ -141,38 +143,29 @@ export function AppProvider({ children }: AppProviderProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Daily Check Effect — re-hydrate without page reload
+  // Daily Check Effect — only refresh from Supabase if new day AND has data
   useEffect(() => {
+    if (!isHydrated) return;
+    
     const checkDate = async () => {
       const today = getTodayIST();
       if (today !== lastResetDate) {
         setLastResetDate(today);
         
         if (syncStatus === 'offline' || syncStatus === 'error') {
-          addToast('info', 'New day! Daily routine available online only.');
+          addToast('info', 'New day! Using local data.');
           return;
         }
         
         try {
-          const [tasksRes, templatesRes] = await Promise.all([
-            supabase.from('daily_tasks').select('*'),
-            supabase.from('daily_routine_templates').select('*')
-          ]);
-
-          if (tasksRes.data && tasksRes.data.length > 0) {
-            setDailyTasks(tasksRes.data);
-          } else if (templatesRes.data && templatesRes.data.length > 0) {
-            const newTasks = templatesRes.data.map(t => ({
-              ...t,
-              id: crypto.randomUUID(),
-              done: false,
-              assignedDate: today,
-              subtasks: t.subtasks?.map((s: any) => ({ ...s, done: false })) || []
-            }));
-            setDailyTasks(newTasks);
-            await supabase.from('daily_tasks').insert(newTasks);
+          const tasksRes = await supabase.from('daily_tasks').select('*');
+          const todayTasks = tasksRes.data?.filter(t => t.assignedDate === today) || [];
+          
+          if (todayTasks.length > 0) {
+            setDailyTasks(todayTasks);
             addToast('info', 'New day! Your daily routine has been refreshed.');
           }
+          // If no tasks in Supabase, keep localStorage data
         } catch (err) {
           console.error('Daily reset error:', err);
         }
@@ -180,7 +173,7 @@ export function AppProvider({ children }: AppProviderProps) {
     };
     const interval = setInterval(checkDate, 60000);
     return () => clearInterval(interval);
-  }, [lastResetDate, setLastResetDate, setDailyTasks, addToast, syncStatus]);
+  }, [lastResetDate, setLastResetDate, setDailyTasks, addToast, syncStatus, isHydrated]);
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
