@@ -3,35 +3,66 @@ import { memo } from 'react';
 
 function getDaysRemaining(dueDate: string): { days: number; isOverdue: boolean } {
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
   
   let targetDate: Date | null = null;
   
-  if (dueDate.toLowerCase().includes('today')) {
+  if (!dueDate || dueDate === 'N/A') {
+    return { days: 0, isOverdue: false };
+  }
+  
+  const lowerDue = dueDate.toLowerCase();
+  
+  if (lowerDue.includes('today')) {
     targetDate = today;
-  } else if (dueDate.toLowerCase().includes('tomorrow')) {
+  } else if (lowerDue.includes('tomorrow')) {
     targetDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
   } else {
-    const dateMatch = dueDate.match(/(\d{1,2})\s*(\w{3,}),?\s*(\d{4})?/);
-    if (dateMatch) {
-      const months: Record<string, number> = {
-        jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-        jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
-      };
-      const monthStr = dateMatch[2].toLowerCase().substring(0, 3);
-      const month = months[monthStr];
-      const day = parseInt(dateMatch[1], 10);
-      const year = dateMatch[3] ? parseInt(dateMatch[3], 10) : now.getFullYear();
-      if (!isNaN(month) && !isNaN(day)) {
-        targetDate = new Date(year, month, day);
+    // Try multiple formats
+    // Format: "25 Apr, 2026" or "25 Apr" or "25,Apr2026"
+    const patterns = [
+      /(\d{1,2})\s+(\w{1,3}),?\s*(\d{4})?/,
+      /(\d{1,2})\/(\d{1,2})\/(\d{4})?/,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = dueDate.match(pattern);
+      if (match) {
+        const months: Record<string, number> = {
+          jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+          may: 4, june: 5, july: 5, aug: 7, september: 8, sept: 8, oct: 9, october: 9, nov: 10, december: 11
+        };
+        
+        let day: number, month: number, year: number;
+        
+        if (match[2].length <= 3) {
+          // First pattern: day month year
+          day = parseInt(match[1], 10);
+          const monthStr = match[2].toLowerCase();
+          month = months[monthStr] ?? parseInt(match[2], 10) - 1;
+          year = match[3] ? parseInt(match[3], 10) : now.getFullYear();
+        } else {
+          // Second pattern: month/day/year
+          day = parseInt(match[2], 10);
+          month = parseInt(match[1], 10) - 1;
+          year = match[3] ? parseInt(match[3], 10) : now.getFullYear();
+        }
+        
+        if (!isNaN(day) && !isNaN(month) && month >= 0 && month <= 11) {
+          targetDate = new Date(year, month, day, 23, 59, 59);
+          break;
+        }
       }
     }
   }
   
-  if (!targetDate) return { days: 0, isOverdue: false };
+  if (!targetDate) {
+    // If we can't parse, show as some future date
+    return { days: 30, isOverdue: false };
+  }
   
   const diffTime = targetDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   
   return { days: diffDays, isOverdue: diffDays < 0 };
 }

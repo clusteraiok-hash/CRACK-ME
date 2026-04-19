@@ -82,11 +82,12 @@ export const GoalTimeline = memo(function GoalTimeline() {
       </div>
 
       <div className="px-12 pt-10 pb-20">
-        <div className="grid grid-cols-[120px_1fr_150px_150px] gap-8 text-[10px] font-black uppercase tracking-widest text-[#022c22]/40 mb-6 border-b border-[#dcfce7] pb-4">
+        <div className="grid grid-cols-[120px_1fr_150px_100px_100px] gap-6 text-[10px] font-black uppercase tracking-widest text-[#022c22]/40 mb-6 border-b border-[#dcfce7] pb-4">
           <div>Date created</div>
           <div>Goal name</div>
           <div>Due date</div>
-          <div>Goal target</div>
+          <div>Days left</div>
+          <div>Target</div>
         </div>
 
         <GoalSection

@@ -131,12 +131,12 @@ export const INITIAL_ON_PROGRESS_GOALS: Goal[] = [
     icon: 'simple-icons:instagram',
     title: 'Instagram Post Update',
     category: 'Social media',
-    startDate: '30 Oct, 2022',
-    dueDate: 'Today, 17:00 PM',
+    startDate: '19 Apr, 2026',
+    dueDate: '25 Apr, 2026',
     target: 'Engagement',
     status: 'Active',
     progress: '55%',
-    createdAt: Date.now() - 1000 * 60 * 60 * 2, // 2 hours ago
+    createdAt: Date.now() - 1000 * 60 * 60 * 2,
   },
   {
     id: 2,
@@ -144,12 +144,12 @@ export const INITIAL_ON_PROGRESS_GOALS: Goal[] = [
     icon: 'solar:code-linear',
     title: 'Android Studio Course',
     category: 'Learning',
-    startDate: '30 Oct, 2022',
-    dueDate: '25 Dec, 2022',
+    startDate: '01 Apr, 2026',
+    dueDate: '15 May, 2026',
     target: 'Intermediate Level',
     status: 'Active',
     progress: '80%',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3, // 3 days ago
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3,
   },
   {
     id: 3,
@@ -157,12 +157,12 @@ export const INITIAL_ON_PROGRESS_GOALS: Goal[] = [
     icon: 'solar:case-linear',
     title: 'Business Improvement',
     category: 'Business',
-    startDate: '01 Nov, 2022',
-    dueDate: '28 Dec, 2022',
+    startDate: '01 Apr, 2026',
+    dueDate: '30 Apr, 2026',
     target: 'Sales target',
     status: 'Active',
     progress: '30%',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10, // 10 days ago
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10,
   },
 ];
 
@@ -173,12 +173,12 @@ export const INITIAL_DONE_GOALS: Goal[] = [
     icon: 'solar:home-2-linear',
     title: 'Home Interior Design',
     category: 'Property',
-    startDate: '10 Oct, 2022',
-    dueDate: '08 Nov, 2022',
+    startDate: '10 Mar, 2026',
+    dueDate: '01 Apr, 2026',
     target: 'Interior Stuff',
     status: 'Done',
     progress: '100%',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 45, // 45 days ago
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 45,
   },
   {
     id: 5,
@@ -186,12 +186,12 @@ export const INITIAL_DONE_GOALS: Goal[] = [
     icon: 'solar:bag-2-linear',
     title: 'Nike Air Jordan Shoe',
     category: 'Fashion shopping',
-    startDate: '15 Oct, 2022',
-    dueDate: '25 Oct, 2022',
+    startDate: '15 Mar, 2026',
+    dueDate: '01 Mar, 2026',
     target: 'Upgrade Style',
     status: 'Done',
     progress: '100%',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 400, // 400 days ago (last year)
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 400,
   },
 ];
 
