@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useEffect, useState } from 'react';
 import type { AppContextType, Goal, DailyTask, StrategyPlan, PageType, TimeframeType, Toast, ActivityLogEntry, ScheduledEvent, NewTaskForm } from '@/types';
 import { useLocalStorage, useClock } from '@/hooks';
-import { supabase } from '@/lib/supabase';
+import { supabase, testSupabaseConnection } from '@/lib/supabase';
 import {
   GOAL_ICONS,
   DEFAULT_SETTINGS,
@@ -28,20 +28,7 @@ function getTodayIST(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Safe wrapper for Supabase calls — logs errors and optionally shows a toast */
-function handleSupabaseError(
-  promise: PromiseLike<{ error: unknown }>,
-  toastFn?: (type: Toast['type'], msg: string) => void
-) {
-  Promise.resolve(promise).then(({ error }) => {
-    if (error) {
-      console.error('Supabase sync error:', error);
-      toastFn?.('error', 'Sync failed — changes saved locally only.');
-    }
-  }).catch((err) => {
-    console.error('Supabase network error:', err);
-  });
-}
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 
 export function AppProvider({ children }: AppProviderProps) {
   const { time: liveClock, date: liveDate } = useClock();
@@ -77,6 +64,7 @@ export function AppProvider({ children }: AppProviderProps) {
   const [scheduledEvents, setScheduledEvents] = useLocalStorage<ScheduledEvent[]>(STORAGE_KEYS.SCHEDULED_EVENTS, []);
 
   const [lastResetDate, setLastResetDate] = useLocalStorage<string>(STORAGE_KEYS.LAST_RESET_DATE, getTodayIST());
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
 
   const addToast = useCallback((type: Toast['type'], message: string) => {
     const id = crypto.randomUUID();
@@ -90,6 +78,16 @@ export function AppProvider({ children }: AppProviderProps) {
   // Supabase Hydration Effect
   useEffect(() => {
     const fetchSupabaseData = async () => {
+      setSyncStatus('syncing');
+      
+      const connectionTest = await testSupabaseConnection();
+      if (!connectionTest.connected) {
+        console.warn('Supabase offline, using local data only');
+        setSyncStatus('offline');
+        addToast('warning', 'Working offline - data saved locally');
+        return;
+      }
+
       try {
         const today = getTodayIST();
         
@@ -124,14 +122,18 @@ export function AppProvider({ children }: AppProviderProps) {
           }));
           
           setDailyTasks(newTasks);
-          handleSupabaseError(supabase.from('daily_tasks').insert(newTasks), addToast);
+          await supabase.from('daily_tasks').insert(newTasks);
           addToast('info', 'Your daily routine has been refreshed for today!');
         }
         
         setLastResetDate(today);
+        setSyncStatus('synced');
+        console.log('Data synced from Supabase');
 
       } catch (err) {
         console.error("Error fetching data from Supabase", err);
+        setSyncStatus('error');
+        addToast('error', 'Sync failed - using local data');
       }
     };
 
@@ -145,7 +147,12 @@ export function AppProvider({ children }: AppProviderProps) {
       const today = getTodayIST();
       if (today !== lastResetDate) {
         setLastResetDate(today);
-        // Re-fetch tasks for the new day
+        
+        if (syncStatus === 'offline' || syncStatus === 'error') {
+          addToast('info', 'New day! Daily routine available online only.');
+          return;
+        }
+        
         try {
           const [tasksRes, templatesRes] = await Promise.all([
             supabase.from('daily_tasks').select('*'),
@@ -163,7 +170,7 @@ export function AppProvider({ children }: AppProviderProps) {
               subtasks: t.subtasks?.map((s: any) => ({ ...s, done: false })) || []
             }));
             setDailyTasks(newTasks);
-            handleSupabaseError(supabase.from('daily_tasks').insert(newTasks), addToast);
+            await supabase.from('daily_tasks').insert(newTasks);
             addToast('info', 'New day! Your daily routine has been refreshed.');
           }
         } catch (err) {
@@ -173,7 +180,7 @@ export function AppProvider({ children }: AppProviderProps) {
     };
     const interval = setInterval(checkDate, 60000);
     return () => clearInterval(interval);
-  }, [lastResetDate, setLastResetDate, setDailyTasks, addToast]);
+  }, [lastResetDate, setLastResetDate, setDailyTasks, addToast, syncStatus]);
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -191,9 +198,16 @@ export function AppProvider({ children }: AppProviderProps) {
         date: getTodayIST(),
       };
       setActivityLog(prev => [entry, ...prev]);
-      handleSupabaseError(supabase.from('activity_log').insert(entry), addToast);
+      
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('activity_log').insert(entry);
+        } catch (err) {
+          console.error('Activity log sync error:', err);
+        }
+      }
     },
-    [setActivityLog, addToast]
+    [setActivityLog, addToast, syncStatus]
   );
 
   const getGoalById = useCallback(
@@ -256,7 +270,14 @@ export function AppProvider({ children }: AppProviderProps) {
       };
 
       setOnProgressGoals((prev) => [newEntry, ...prev]);
-      handleSupabaseError(supabase.from('goals').insert(newEntry), addToast);
+      
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('goals').insert(newEntry);
+        } catch (err) {
+          console.error('Goal sync failed:', err);
+        }
+      }
 
       setIsAddGoalModalOpen(false);
       setNewGoalForm(DEFAULT_NEW_GOAL_FORM);
@@ -295,7 +316,14 @@ export function AppProvider({ children }: AppProviderProps) {
           ],
         };
         setStrategyPlans((prev) => [...prev, newPlan]);
-        handleSupabaseError(supabase.from('strategy_plans').insert(newPlan), addToast);
+        
+        if (syncStatus !== 'offline') {
+          try {
+            await supabase.from('strategy_plans').insert(newPlan);
+          } catch (err) {
+            console.error('Strategy plan sync failed:', err);
+          }
+        }
 
         setPlanningGoal(newPlan);
         setActivePage('Strategy Planner');
@@ -316,10 +344,13 @@ export function AppProvider({ children }: AppProviderProps) {
       addToast('success', `Goal "${goal.title}" marked as done! 🎉`);
       logActivity('goal_completed', `Completed goal: ${goal.title}`, goalId);
 
-      handleSupabaseError(
-        supabase.from('goals').update({ status: 'Done', progress: '100%', completedAt: Date.now() }).eq('id', goalId),
-        addToast
-      );
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('goals').update({ status: 'Done', progress: '100%', completedAt: Date.now() }).eq('id', goalId);
+        } catch (err) {
+          console.error('Goal completion sync failed:', err);
+        }
+      }
     },
     [onProgressGoals, selectedGoal, setOnProgressGoals, setDoneGoals, addToast, logActivity]
   );
@@ -334,7 +365,13 @@ export function AppProvider({ children }: AppProviderProps) {
       addToast('info', `Goal "${goal?.title || 'Unknown'}" deleted.`);
       logActivity('goal_deleted', `Deleted goal: ${goal?.title || 'Unknown'}`, goalId);
 
-      handleSupabaseError(supabase.from('goals').delete().eq('id', goalId), addToast);
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('goals').delete().eq('id', goalId);
+        } catch (err) {
+          console.error('Goal deletion sync failed:', err);
+        }
+      }
     },
     [selectedGoal, setOnProgressGoals, setDoneGoals, setStrategyPlans, onProgressGoals, doneGoals, addToast, logActivity]
   );
@@ -349,7 +386,13 @@ export function AppProvider({ children }: AppProviderProps) {
       }
       addToast('success', 'Goal updated successfully!');
 
-      handleSupabaseError(supabase.from('goals').update(updates).eq('id', goalId), addToast);
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('goals').update(updates).eq('id', goalId);
+        } catch (err) {
+          console.error('Goal update sync failed:', err);
+        }
+      }
     },
     [selectedGoal, setOnProgressGoals, setDoneGoals, addToast]
   );
@@ -361,7 +404,13 @@ export function AppProvider({ children }: AppProviderProps) {
       setEditingTask(null);
       addToast('success', 'Task updated successfully!');
 
-      handleSupabaseError(supabase.from('daily_tasks').update(taskData).eq('id', taskData.id), addToast);
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('daily_tasks').update(taskData).eq('id', taskData.id);
+        } catch (err) {
+          console.error('Task update sync failed:', err);
+        }
+      }
     },
     [setDailyTasks, addToast]
   );
@@ -372,7 +421,13 @@ export function AppProvider({ children }: AppProviderProps) {
       setEditingTask(null);
       addToast('info', 'Task deleted.');
 
-      handleSupabaseError(supabase.from('daily_tasks').delete().eq('id', id), addToast);
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('daily_tasks').delete().eq('id', id);
+        } catch (err) {
+          console.error('Task deletion sync failed:', err);
+        }
+      }
     },
     [setDailyTasks, addToast]
   );
@@ -398,7 +453,13 @@ export function AppProvider({ children }: AppProviderProps) {
       addToast('success', `Task "${newTask.title}" added!`);
       logActivity('task_created', `Created task: ${newTask.title}`, newTask.linkedGoalId, newTask.id);
 
-      handleSupabaseError(supabase.from('daily_tasks').insert(newTask), addToast);
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('daily_tasks').insert(newTask);
+        } catch (err) {
+          console.error('Task creation sync failed:', err);
+        }
+      }
     },
     [setDailyTasks, addToast, logActivity]
   );
@@ -412,9 +473,15 @@ export function AppProvider({ children }: AppProviderProps) {
       setScheduledEvents(prev => [...prev, newEvent]);
       addToast('success', `Event "${newEvent.title}" scheduled!`);
 
-      handleSupabaseError(supabase.from('scheduled_events').insert(newEvent), addToast);
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('scheduled_events').insert(newEvent);
+        } catch (err) {
+          console.error('Event creation sync failed:', err);
+        }
+      }
     },
-    [setScheduledEvents, addToast]
+    [setScheduledEvents, addToast, syncStatus]
   );
 
   const handleDeleteEvent = useCallback(
@@ -422,9 +489,15 @@ export function AppProvider({ children }: AppProviderProps) {
       setScheduledEvents(prev => prev.filter(e => e.id !== id));
       addToast('info', 'Event removed.');
 
-      handleSupabaseError(supabase.from('scheduled_events').delete().eq('id', id), addToast);
+      if (syncStatus !== 'offline') {
+        try {
+          await supabase.from('scheduled_events').delete().eq('id', id);
+        } catch (err) {
+          console.error('Event deletion sync failed:', err);
+        }
+      }
     },
-    [setScheduledEvents, addToast]
+    [setScheduledEvents, addToast, syncStatus]
   );
 
   useEffect(() => {
@@ -434,17 +507,24 @@ export function AppProvider({ children }: AppProviderProps) {
         const newProgress = `${newPct}%`;
         if (goal.progress !== newProgress) {
           const upd = { ...goal, progress: newProgress };
-          handleSupabaseError(supabase.from('goals').update({ progress: newProgress }).eq('id', goal.id));
+          if (syncStatus !== 'offline') {
+            (async () => {
+              try {
+                await supabase.from('goals').update({ progress: newProgress }).eq('id', goal.id);
+              } catch (err) {
+                console.error('Progress sync error:', err);
+              }
+            })();
+          }
           return upd;
         }
         return goal;
       })
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [strategyPlans, dailyTasks]);
+  }, [strategyPlans, dailyTasks, syncStatus]);
 
   const value = useMemo<AppContextType>(() => ({
-      activePage, selectedGoal, isAddGoalModalOpen, searchQuery, newGoalForm,
+      syncStatus, activePage, selectedGoal, isAddGoalModalOpen, searchQuery, newGoalForm,
       liveClock, liveDate, calMonth, calYear, dailyTasks, editingTask, isAddTaskOpen,
       newTaskForm, planningGoal, strategyPlans, openFaq, isSettingsOpen, settingsForm,
       onProgressGoals, doneGoals, lastResetDate, setActivePage, setSelectedGoal,
@@ -458,7 +538,7 @@ export function AppProvider({ children }: AppProviderProps) {
       handleAddEvent, handleDeleteEvent, getGoalById,
     }),
     [
-      activePage, selectedGoal, isAddGoalModalOpen, searchQuery, newGoalForm,
+      syncStatus, activePage, selectedGoal, isAddGoalModalOpen, searchQuery, newGoalForm,
       liveClock, liveDate, calMonth, calYear, dailyTasks, editingTask, isAddTaskOpen,
       newTaskForm, planningGoal, strategyPlans, openFaq, isSettingsOpen, settingsForm,
       onProgressGoals, doneGoals, lastResetDate, reportTimeframe, toasts, activityLog,

@@ -144,7 +144,10 @@ export interface AppState {
   scheduledEvents: ScheduledEvent[];
 }
 
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
+
 export interface AppContextType extends AppState {
+  syncStatus: SyncStatus;
   setActivePage: (page: PageType) => void;
   setSelectedGoal: (goal: Goal | null) => void;
   setIsAddGoalModalOpen: (open: boolean) => void;

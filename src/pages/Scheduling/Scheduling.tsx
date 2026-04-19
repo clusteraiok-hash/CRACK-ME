@@ -27,6 +27,16 @@ export const Scheduling = memo(function Scheduling() {
   const toDateStr = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+  const parseTime = (timeStr: string): { hour: number; min: number } | null => {
+    const cleaned = timeStr.split(' - ')[0].trim();
+    const parts = cleaned.split(':');
+    if (parts.length < 2) return null;
+    const hour = parseInt(parts[0], 10);
+    const min = parseInt(parts[1], 10);
+    if (isNaN(hour) || isNaN(min)) return null;
+    return { hour, min };
+  };
+
   const renderTasksForDay = (dayIndex: number) => {
     const date = weekDates[dayIndex];
     const dateStr = toDateStr(date);
@@ -34,13 +44,16 @@ export const Scheduling = memo(function Scheduling() {
     return dailyTasks
       .filter((task) => task.assignedDate === dateStr)
       .map((task) => {
-        const timeParts = task.startTime.split(' - ')[0].split(':');
-        if (timeParts.length < 2) return null;
-        const startHour = parseInt(timeParts[0], 10);
-        const startMin = parseInt(timeParts[1], 10) || 0;
+        const parsed = parseTime(task.startTime);
+        if (!parsed) return null;
+        const { hour: startHour, min: startMin } = parsed;
         
         if (startHour < 8 || startHour > 19) return null;
         const top = (startHour - 8) * 64 + (startMin / 60) * 64 + 4;
+        
+        const displayTime = task.endTime 
+          ? `${task.startTime} - ${task.endTime}` 
+          : task.startTime;
         
         return (
           <div
@@ -57,7 +70,7 @@ export const Scheduling = memo(function Scheduling() {
             }}
           >
             <div className={`font-black uppercase tracking-tighter truncate ${task.done ? 'line-through text-slate-400' : 'text-[#022c22]'}`}>{task.title}</div>
-            <div className="font-bold text-[#022c22]/40 mt-0.5">{task.startTime}</div>
+            <div className="font-bold text-[#022c22]/40 mt-0.5">{displayTime}</div>
           </div>
         );
       });
