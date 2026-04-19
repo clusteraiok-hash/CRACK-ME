@@ -19,23 +19,34 @@ function parseDateStr(dateStr: string): Date | null {
     'dec': 11, 'december': 11
   };
   
-  const cleanDate = dateStr.trim();
+  const cleanDate = dateStr.trim().toLowerCase();
   let day = 0, monthIdx = 0, year = 2026;
   
-  const parts = cleanDate.split(/[\s,]+/);
-  for (let i = 0; i < parts.length; i++) {
-    const p = parts[i];
-    if (/^\d{1,2}$/.test(p) && day === 0) {
-      day = parseInt(p, 10);
-    } else if (/^[a-zA-Z]{3,}$/.test(p)) {
-      const m = p.toLowerCase().replace(/[^a-z]/g, '').substring(0, 3);
-      if (months[m] !== undefined) monthIdx = months[m];
-    } else if (/^\d{4}$/.test(p)) {
-      year = parseInt(p, 10);
+  // Find month first
+  let monthFound = false;
+  for (const [m, idx] of Object.entries(months)) {
+    if (cleanDate.includes(m)) {
+      monthIdx = idx;
+      monthFound = true;
+      break;
     }
   }
   
-  if (day === 0) return null;
+  if (!monthFound) return null;
+  
+  // Extract day number
+  const dayMatch = cleanDate.match(/(\d{1,2})/);
+  if (dayMatch) {
+    day = parseInt(dayMatch[1], 10);
+  }
+  
+  // Extract year
+  const yearMatch = cleanDate.match(/(\d{4})/);
+  if (yearMatch) {
+    year = parseInt(yearMatch[1], 10);
+  }
+  
+  if (day === 0 || day > 31) return null;
   return new Date(year, monthIdx, day);
 }
 
