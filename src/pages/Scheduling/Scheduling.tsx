@@ -40,10 +40,15 @@ export const Scheduling = memo(function Scheduling() {
   const renderTasksForDay = (dayIndex: number) => {
     const date = weekDates[dayIndex];
     const dateStr = toDateStr(date);
+    const todayStr = toDateStr(new Date());
+    const isToday = dateStr === todayStr;
 
+    // Show tasks that are either unassigned (no assignedDate) or match today's date
     return dailyTasks
-      .filter((task) => task.assignedDate === dateStr)
+      .filter((task) => isToday && (!task.assignedDate || task.assignedDate === dateStr))
       .map((task) => {
+        if (!task.startTime) return null;
+        
         const parsed = parseTime(task.startTime);
         if (!parsed) return null;
         const { hour: startHour, min: startMin } = parsed;
