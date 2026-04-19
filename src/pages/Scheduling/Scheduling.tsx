@@ -14,8 +14,10 @@ export const Scheduling = memo(function Scheduling() {
 
   const weekDates = useMemo(() => {
     const now = new Date();
+    const currentDay = now.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
     const monday = new Date(now);
-    monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1) + currentWeekOffset * 7);
+    monday.setDate(now.getDate() + mondayOffset + currentWeekOffset * 7);
     
     return DAYS.map((_, i) => {
       const d = new Date(monday);
@@ -23,6 +25,13 @@ export const Scheduling = memo(function Scheduling() {
       return d;
     });
   }, [currentWeekOffset]);
+
+  const weekRange = useMemo(() => {
+    if (!weekDates[0] || !weekDates[6]) return '';
+    const start = weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const end = weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${start} - ${end}`;
+  }, [weekDates]);
 
   const toDateStr = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -185,7 +194,7 @@ export const Scheduling = memo(function Scheduling() {
             </button>
           </div>
           <div className="text-sm font-black uppercase tracking-tighter text-[#022c22]">
-            {weekDates[0].toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            {currentWeekOffset === 0 ? 'This Week' : currentWeekOffset === 1 ? 'Next Week' : currentWeekOffset === -1 ? 'Last Week' : weekRange}
           </div>
           <Button
             onClick={() => {
