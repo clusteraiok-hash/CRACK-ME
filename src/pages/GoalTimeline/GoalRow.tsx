@@ -50,27 +50,22 @@ function parseDateStr(dateStr: string): Date | null {
   return new Date(year, monthIdx, day);
 }
 
-function getDaysRemaining(startDate: string, dueDate: string): { totalDays: number; remainingDays: number; isOverdue: boolean } {
+function getDaysRemaining(_startDate: string, dueDate: string): { days: number; isOverdue: boolean } {
   const today = new Date(2026, 3, 19); // April 19, 2026
   
   if (!dueDate || dueDate === 'N/A') {
-    return { totalDays: 0, remainingDays: 0, isOverdue: false };
+    return { days: 0, isOverdue: false };
   }
   
-  const start = parseDateStr(startDate) || today;
   const end = parseDateStr(dueDate);
-  
   if (!end) {
-    return { totalDays: 0, remainingDays: 0, isOverdue: false };
+    return { days: 0, isOverdue: false };
   }
   
-  const totalMs = end.getTime() - start.getTime();
-  const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24));
+  const diffMs = end.getTime() - today.getTime();
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   
-  const remainingMs = end.getTime() - today.getTime();
-  const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
-  
-  return { totalDays, remainingDays, isOverdue: remainingDays < 0 };
+  return { days: days > 0 ? days : Math.abs(days), isOverdue: days < 0 };
 }
 
 interface GoalRowProps {
@@ -81,8 +76,7 @@ interface GoalRowProps {
 
 export const GoalRow = memo(function GoalRow({ goal, isActive, onSelect }: GoalRowProps) {
   const progressNum = parseInt(goal.progress) || 0;
-  const { totalDays, remainingDays, isOverdue } = getDaysRemaining(goal.startDate, goal.dueDate);
-  const displayDays = remainingDays > 0 ? remainingDays : (isOverdue ? Math.abs(remainingDays) : totalDays);
+  const { days, isOverdue } = getDaysRemaining(goal.startDate, goal.dueDate);
 
   return (
     <div
@@ -129,8 +123,8 @@ export const GoalRow = memo(function GoalRow({ goal, isActive, onSelect }: GoalR
       </div>
       <div className={`text-[10px] font-black tracking-widest uppercase ${isActive ? 'text-[#022c22]/60' : 'text-[#022c22]'}`}>{goal.dueDate}</div>
       <div className="flex flex-col items-center">
-        <div className={`text-[22px] font-black ${isOverdue ? 'text-rose-500' : displayDays <= 3 ? 'text-amber-500' : 'text-[#022c22]'}`}>
-          {displayDays}
+        <div className={`text-[22px] font-black ${isOverdue ? 'text-rose-500' : days <= 3 ? 'text-amber-500' : 'text-[#022c22]'}`}>
+          {days}
         </div>
         <div className={`text-[8px] font-black uppercase ${isOverdue ? 'text-rose-400' : 'text-slate-400'}`}>
           {isOverdue ? 'days ago' : 'days left'}
