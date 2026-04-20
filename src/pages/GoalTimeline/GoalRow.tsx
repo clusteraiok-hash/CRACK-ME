@@ -1,77 +1,6 @@
 import type { Goal } from '@/types';
 import { memo } from 'react';
-
-function parseDate(dateStr: string): { day: number; month: number; year: number } | null {
-  if (!dateStr || dateStr === 'N/A') return null;
-  
-  const monthMap: Record<string, number> = {
-    'jan': 0, 'january': 0,
-    'feb': 1, 'february': 1,
-    'mar': 2, 'march': 2,
-    'apr': 3, 'april': 3,
-    'may': 4,
-    'jun': 5, 'june': 5,
-    'jul': 6, 'july': 6,
-    'aug': 7, 'august': 7,
-    'sep': 8, 'sept': 8, 'september': 8,
-    'oct': 9, 'october': 9,
-    'nov': 10, 'november': 10,
-    'dec': 11, 'december': 11
-  };
-  
-  const s = dateStr.toLowerCase().trim();
-  let day = 0, month = 0, year = 2026;
-  
-  // Find month
-  let foundMonth = false;
-  for (const [name, idx] of Object.entries(monthMap)) {
-    if (s.includes(name)) {
-      month = idx;
-      foundMonth = true;
-      break;
-    }
-  }
-  if (!foundMonth) return null;
-  
-  // Extract day
-  const dMatch = s.match(/(\d{1,2})/);
-  if (dMatch) day = parseInt(dMatch[1], 10);
-  if (day < 1 || day > 31) return null;
-  
-  // Extract year
-  const yMatch = s.match(/(\d{4})/);
-  if (yMatch) year = parseInt(yMatch[1], 10);
-  
-  return { day, month, year };
-}
-
-function getDaysRemaining(_startDate: string, dueDate: string): { days: number; isOverdue: boolean } {
-  // Use current system date
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  if (!dueDate || dueDate === 'N/A') {
-    return { days: 0, isOverdue: false };
-  }
-  
-  const parsed = parseDate(dueDate);
-  if (!parsed) {
-    return { days: 0, isOverdue: false };
-  }
-  
-  // Create date at noon to avoid timezone issues
-  const endDate = new Date(parsed.year, parsed.month, parsed.day, 12, 0, 0);
-  
-  // Calculate difference in days
-  const diffTime = endDate.getTime() - today.getTime();
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays < 0) {
-    return { days: Math.abs(diffDays), isOverdue: true };
-  }
-  
-  return { days: diffDays, isOverdue: false };
-}
+import { getGoalMetrics } from '@/utils/dateUtils';
 
 interface GoalRowProps {
   goal: Goal;
@@ -81,7 +10,7 @@ interface GoalRowProps {
 
 export const GoalRow = memo(function GoalRow({ goal, isActive, onSelect }: GoalRowProps) {
   const progressNum = parseInt(goal.progress) || 0;
-  const { days, isOverdue } = getDaysRemaining(goal.startDate, goal.dueDate);
+  const { daysRemaining, isOverdue } = getGoalMetrics(goal.startDate, goal.dueDate);
 
   return (
     <div
@@ -128,8 +57,8 @@ export const GoalRow = memo(function GoalRow({ goal, isActive, onSelect }: GoalR
       </div>
       <div className={`text-[10px] font-black tracking-widest uppercase ${isActive ? 'text-[#022c22]/60' : 'text-[#022c22]'}`}>{goal.dueDate}</div>
       <div className="flex flex-col items-center">
-        <div className={`text-[22px] font-black ${isOverdue ? 'text-rose-500' : days <= 3 ? 'text-amber-500' : 'text-[#022c22]'}`}>
-          {days}
+        <div className={`text-[22px] font-black ${isOverdue ? 'text-rose-500' : daysRemaining <= 3 ? 'text-amber-500' : 'text-[#022c22]'}`}>
+          {daysRemaining}
         </div>
         <div className={`text-[8px] font-black uppercase ${isOverdue ? 'text-rose-400' : 'text-slate-400'}`}>
           {isOverdue ? 'days ago' : 'days left'}

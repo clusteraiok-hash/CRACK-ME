@@ -2,6 +2,7 @@ import { memo, useMemo, useCallback, Fragment, useState } from 'react';
 import { useApp } from '@/context';
 import { Button, ProgressBar } from '@/components';
 import type { StrategyPlan, Phase } from '@/types';
+import { getGoalMetrics } from '@/utils/dateUtils';
 
 export const StrategyPlanner = memo(function StrategyPlanner() {
   const {
@@ -15,6 +16,7 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
     logActivity,
     setOnProgressGoals,
     computeGoalProgress,
+    getGoalById,
   } = useApp();
 
   const [showPlanList, setShowPlanList] = useState(!planningGoal);
@@ -30,6 +32,20 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
   );
 
   const overallPct = totalMilestones > 0 ? Math.round((doneMilestones / totalMilestones) * 100) : 0;
+
+  const goal = useMemo(() => planningGoal ? getGoalById(planningGoal.goalId) : null, [planningGoal, getGoalById]);
+  
+  const goalMetrics = useMemo(() => {
+    if (!goal) return { totalDays: 0 };
+    return getGoalMetrics(goal.startDate, goal.dueDate);
+  }, [goal]);
+
+  const allocatedDays = useMemo(() => 
+    planningGoal?.phases.reduce((acc, p) => acc + (p.dayAllocation || 0), 0) || 0,
+    [planningGoal]
+  );
+
+  const unallocatedDays = goalMetrics.totalDays - allocatedDays;
 
   const updatePlan = useCallback(
     (updated: StrategyPlan) => {
@@ -83,8 +99,8 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
     const newPhase: Phase = {
       id: 'ph' + Date.now(),
       name: 'New Phase',
-      timeframe: 'Week TBD',
-      dayAllocation: 7,
+      timeframe: `Week ${planningGoal.phases.length + 1}`,
+      dayAllocation: Math.max(0, unallocatedDays),
       status: 'upcoming',
       milestones: [{ text: 'Define milestone', done: false }],
       keyActions: '',
@@ -92,7 +108,7 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
     };
     updatePlan({ ...planningGoal, phases: [...planningGoal.phases, newPhase] });
     addToast('info', 'New phase added.');
-  }, [planningGoal, updatePlan, addToast]);
+  }, [planningGoal, updatePlan, addToast, unallocatedDays]);
 
   const updatePhase = useCallback(
     (phaseId: string, field: keyof Phase, value: string | number) => {
@@ -274,7 +290,23 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
       </div>
 
       <div className="px-12 pt-6 pb-2">
+        <div className="flex justify-between items-end mb-2">
+          <div className="text-[10px] font-black uppercase tracking-widest text-[#022c22]/40">Strategic Success Progress</div>
+          <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+            unallocatedDays === 0 ? 'bg-emerald-500/10 text-emerald-600' : unallocatedDays > 0 ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-600'
+          }`}>
+            {unallocatedDays === 0 ? 'Fully Allocated' : unallocatedDays > 0 ? `${unallocatedDays} Days Unallocated` : `${Math.abs(unallocatedDays)} Days Overspent`}
+          </div>
+        </div>
         <ProgressBar percentage={overallPct} />
+        <div className="flex justify-between items-center mt-2">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Timeline: {goalMetrics.totalDays} Total Days
+          </div>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            {allocatedDays} Days Distributed
+          </div>
+        </div>
       </div>
 
       <div className="px-12 pt-6 pb-4">
@@ -328,15 +360,15 @@ export const StrategyPlanner = memo(function StrategyPlanner() {
                     aria-label="Phase name"
                   />
                 </div>
-<div className="flex items-center gap-4">
+                <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 bg-[#f0fdf4] border border-[#dcfce7] px-4 py-2 rounded-xl">
                       <iconify-icon icon="solar:calendar-linear" width="16" height="16" className="text-[#022c22]/40" />
                       <input
                         type="number"
-                        min="1"
-                        max="90"
-                        value={phase.dayAllocation || phase.timeframe.replace(/\D/g, '') || 7}
-                        onChange={(e) => updatePhase(phase.id, 'dayAllocation', parseInt(e.target.value) || 7)}
+                        min="0"
+                        max={goalMetrics.totalDays}
+                        value={phase.dayAllocation || 0}
+                        onChange={(e) => updatePhase(phase.id, 'dayAllocation', parseInt(e.target.value) || 0)}
                         className="text-xs font-bold outline-none bg-transparent text-[#022c22] w-12"
                         aria-label="Day allocation"
                       />

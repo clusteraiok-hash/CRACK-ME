@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import type { Goal } from '@/types';
 import { useApp } from '@/context';
 import { Button, ProgressBar } from '@/components';
+import { getGoalMetrics } from '@/utils/dateUtils';
 
 interface GoalDetailPanelProps {
   goal: Goal;
@@ -32,6 +33,7 @@ export const GoalDetailPanel = memo(function GoalDetailPanel({ goal, onClose }: 
   const linkedTasks = dailyTasks.filter(t => t.linkedGoalId === goal.id);
   const plan = strategyPlans.find(sp => sp.goalId === goal.id);
   const computedProgress = computeGoalProgress(goal.id);
+  const { totalDays, daysRemaining, isOverdue } = getGoalMetrics(goal.startDate, goal.dueDate);
 
   const totalMilestones = plan ? plan.phases.reduce((a, p) => a + p.milestones.length, 0) : 0;
   const doneMilestones = plan ? plan.phases.reduce((a, p) => a + p.milestones.filter(m => m.done).length, 0) : 0;
@@ -121,7 +123,7 @@ export const GoalDetailPanel = memo(function GoalDetailPanel({ goal, onClose }: 
         </div>
 
         {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-6 p-6 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]/50">
+        <div className="grid grid-cols-3 gap-6 p-6 bg-[#f0fdf4] rounded-2xl border border-[#dcfce7]/50">
           <div>
             <label className="block text-[8px] font-black uppercase tracking-widest text-[#022c22]/40 mb-2">Initiated</label>
             <div className="text-xs font-black text-[#022c22]">{goal.startDate}</div>
@@ -129,6 +131,12 @@ export const GoalDetailPanel = memo(function GoalDetailPanel({ goal, onClose }: 
           <div>
             <label className="block text-[8px] font-black uppercase tracking-widest text-[#022c22]/40 mb-2">Deadline</label>
             <div className="text-xs font-black text-[#022c22]">{goal.dueDate}</div>
+          </div>
+          <div>
+            <label className="block text-[8px] font-black uppercase tracking-widest text-[#022c22]/40 mb-2">{isOverdue ? 'Overdue' : 'Remaining'}</label>
+            <div className={`text-xs font-black ${isOverdue ? 'text-rose-500' : 'text-[#022c22]'}`}>
+              {daysRemaining} Days
+            </div>
           </div>
         </div>
 
