@@ -228,8 +228,15 @@ export function AppProvider({ children }: AppProviderProps) {
       }
 
       linkedTasks.forEach(task => {
-        totalItems++;
-        if (task.done) doneItems++;
+        if (task.subtasks && task.subtasks.length > 0) {
+          task.subtasks.forEach(st => {
+            totalItems++;
+            if (st.done) doneItems++;
+          });
+        } else {
+          totalItems++;
+          if (task.done) doneItems++;
+        }
       });
 
       if (totalItems === 0) return 0;

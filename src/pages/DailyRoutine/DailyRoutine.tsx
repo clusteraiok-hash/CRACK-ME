@@ -15,8 +15,20 @@ export const DailyRoutine = memo(function DailyRoutine() {
     logActivity,
   } = useApp();
 
-  const doneCount = useMemo(() => dailyTasks.filter((t) => t.done).length, [dailyTasks]);
-  const percentage = dailyTasks.length > 0 ? Math.round((doneCount / dailyTasks.length) * 100) : 0;
+  const totalUnits = useMemo(() => dailyTasks.reduce((acc, task) => {
+    return acc + Math.max(1, task.subtasks.length);
+  }, 0), [dailyTasks]);
+
+  const completedUnits = useMemo(() => dailyTasks.reduce((acc, task) => {
+    if (task.subtasks.length > 0) {
+      return acc + task.subtasks.filter(s => s.done).length;
+    }
+    return acc + (task.done ? 1 : 0);
+  }, 0), [dailyTasks]);
+
+  const percentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+  const doneCount = dailyTasks.filter((t) => t.done).length;
+  
   const totalSubs = useMemo(() => dailyTasks.reduce((a, t) => a + t.subtasks.length, 0), [dailyTasks]);
   const doneSubs = useMemo(
     () => dailyTasks.reduce((a, t) => a + t.subtasks.filter((s) => s.done).length, 0),
