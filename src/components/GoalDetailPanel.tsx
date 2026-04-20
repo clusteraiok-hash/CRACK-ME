@@ -33,7 +33,7 @@ export const GoalDetailPanel = memo(function GoalDetailPanel({ goal, onClose }: 
   const linkedTasks = dailyTasks.filter(t => t.linkedGoalId === goal.id);
   const plan = strategyPlans.find(sp => sp.goalId === goal.id);
   const computedProgress = computeGoalProgress(goal.id);
-  const { totalDays, daysRemaining, isOverdue } = getGoalMetrics(goal.startDate, goal.dueDate);
+  const { daysRemaining, isOverdue } = getGoalMetrics(goal.startDate, goal.dueDate);
 
   const totalMilestones = plan ? plan.phases.reduce((a, p) => a + p.milestones.length, 0) : 0;
   const doneMilestones = plan ? plan.phases.reduce((a, p) => a + p.milestones.filter(m => m.done).length, 0) : 0;
