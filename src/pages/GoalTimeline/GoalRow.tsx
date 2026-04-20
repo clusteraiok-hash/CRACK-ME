@@ -1,10 +1,10 @@
 import type { Goal } from '@/types';
 import { memo } from 'react';
 
-function parseDateStr(dateStr: string): Date | null {
+function parseDate(dateStr: string): { day: number; month: number; year: number } | null {
   if (!dateStr || dateStr === 'N/A') return null;
   
-  const months: Record<string, number> = {
+  const monthMap: Record<string, number> = {
     'jan': 0, 'january': 0,
     'feb': 1, 'february': 1,
     'mar': 2, 'march': 2,
@@ -19,53 +19,58 @@ function parseDateStr(dateStr: string): Date | null {
     'dec': 11, 'december': 11
   };
   
-  const cleanDate = dateStr.trim().toLowerCase();
-  let day = 0, monthIdx = 0, year = 2026;
+  const s = dateStr.toLowerCase().trim();
+  let day = 0, month = 0, year = 2026;
   
-  // Find month first
-  let monthFound = false;
-  for (const [m, idx] of Object.entries(months)) {
-    if (cleanDate.includes(m)) {
-      monthIdx = idx;
-      monthFound = true;
+  // Find month
+  let foundMonth = false;
+  for (const [name, idx] of Object.entries(monthMap)) {
+    if (s.includes(name)) {
+      month = idx;
+      foundMonth = true;
       break;
     }
   }
+  if (!foundMonth) return null;
   
-  if (!monthFound) return null;
-  
-  // Extract day number
-  const dayMatch = cleanDate.match(/(\d{1,2})/);
-  if (dayMatch) {
-    day = parseInt(dayMatch[1], 10);
-  }
+  // Extract day
+  const dMatch = s.match(/(\d{1,2})/);
+  if (dMatch) day = parseInt(dMatch[1], 10);
+  if (day < 1 || day > 31) return null;
   
   // Extract year
-  const yearMatch = cleanDate.match(/(\d{4})/);
-  if (yearMatch) {
-    year = parseInt(yearMatch[1], 10);
-  }
+  const yMatch = s.match(/(\d{4})/);
+  if (yMatch) year = parseInt(yMatch[1], 10);
   
-  if (day === 0 || day > 31) return null;
-  return new Date(year, monthIdx, day);
+  return { day, month, year };
 }
 
 function getDaysRemaining(_startDate: string, dueDate: string): { days: number; isOverdue: boolean } {
-  const today = new Date(2026, 3, 19); // April 19, 2026
+  // Use current system date
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
   if (!dueDate || dueDate === 'N/A') {
     return { days: 0, isOverdue: false };
   }
   
-  const end = parseDateStr(dueDate);
-  if (!end) {
+  const parsed = parseDate(dueDate);
+  if (!parsed) {
     return { days: 0, isOverdue: false };
   }
   
-  const diffMs = end.getTime() - today.getTime();
-  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  // Create date at noon to avoid timezone issues
+  const endDate = new Date(parsed.year, parsed.month, parsed.day, 12, 0, 0);
   
-  return { days: days > 0 ? days : Math.abs(days), isOverdue: days < 0 };
+  // Calculate difference in days
+  const diffTime = endDate.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return { days: Math.abs(diffDays), isOverdue: true };
+  }
+  
+  return { days: diffDays, isOverdue: false };
 }
 
 interface GoalRowProps {
