@@ -78,12 +78,13 @@ export const DEFAULT_NEW_GOAL_FORM = {
   description: '',
 };
 
-export const DEFAULT_NEW_TASK_FORM: { title: string; startTime: string; endTime: string; category: string; note: string; linkedGoalId?: number } = {
+export const DEFAULT_NEW_TASK_FORM: { title: string; startTime: string; endTime: string; category: string; note: string; subtasks: any[]; linkedGoalId?: number } = {
   title: '',
   startTime: '',
   endTime: '',
   category: 'Work',
   note: '',
+  subtasks: [],
 };
 
 export const STORAGE_KEYS = {

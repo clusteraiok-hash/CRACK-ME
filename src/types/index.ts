@@ -87,6 +87,7 @@ export interface NewTaskForm {
   endTime: string;
   category: string;
   note: string;
+  subtasks: Subtask[];
   linkedGoalId?: number;
 }
 

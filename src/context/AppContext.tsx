@@ -435,7 +435,7 @@ export function AppProvider({ children }: AppProviderProps) {
         title: formData.title || 'New Task',
         category: formData.category,
         note: formData.note || '',
-        subtasks: [],
+        subtasks: formData.subtasks || [],
         done: false,
         linkedGoalId: formData.linkedGoalId,
         assignedDate: getTodayIST(),

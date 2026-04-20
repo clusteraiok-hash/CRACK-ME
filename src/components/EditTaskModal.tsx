@@ -10,7 +10,9 @@ export function EditTaskModal() {
     startTime: '09:00',
     endTime: '10:00',
     category: 'Work',
+    subtasks: [] as { text: string; done: boolean }[],
   });
+  const [newSubtask, setNewSubtask] = useState('');
 
   useEffect(() => {
     if (editingTask) {
@@ -19,6 +21,7 @@ export function EditTaskModal() {
         startTime: editingTask.startTime,
         endTime: editingTask.endTime || '10:00',
         category: editingTask.category || 'Work',
+        subtasks: editingTask.subtasks || [],
       });
     }
   }, [editingTask]);
@@ -32,8 +35,25 @@ export function EditTaskModal() {
       startTime: taskForm.startTime,
       endTime: taskForm.endTime,
       category: taskForm.category,
+      subtasks: taskForm.subtasks,
     };
     handleSaveEditTask(updatedTask);
+  };
+
+  const addSubtask = () => {
+    if (!newSubtask.trim()) return;
+    setTaskForm(prev => ({
+      ...prev,
+      subtasks: [...prev.subtasks, { text: newSubtask.trim(), done: false }]
+    }));
+    setNewSubtask('');
+  };
+
+  const removeSubtask = (index: number) => {
+    setTaskForm(prev => ({
+      ...prev,
+      subtasks: prev.subtasks.filter((_, i) => i !== index)
+    }));
   };
 
   return (
@@ -82,6 +102,42 @@ export function EditTaskModal() {
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
+        </div>
+
+        <div className="pt-4 border-t border-[#dcfce7]">
+          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#022c22]/40 mb-4">Operations Checklist</label>
+          
+          <div className="space-y-2 mb-4">
+            {taskForm.subtasks.map((st, idx) => (
+              <div key={idx} className="flex items-center gap-3 p-3 bg-[#f0fdf4] border border-[#dcfce7] rounded-xl group">
+                <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${st.done ? 'bg-[#bef264] border-[#bef264]' : 'border-[#dcfce7]'}`} />
+                <span className="flex-1 text-xs font-bold text-[#022c22]">{st.text}</span>
+                <button 
+                  onClick={() => removeSubtask(idx)}
+                  className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <iconify-icon icon="solar:trash-bin-2-linear" width="16" height="16" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Add strategic sub-step..."
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addSubtask()}
+              className="w-full bg-[#f0fdf4] border border-[#dcfce7] rounded-xl px-4 py-3.5 text-xs focus:border-[#022c22]/30 outline-none transition-all placeholder-slate-300 text-[#022c22] font-bold pr-12"
+            />
+            <button
+              onClick={addSubtask}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#bef264] text-[#022c22] flex items-center justify-center hover:shadow-soft transition-all"
+            >
+              <iconify-icon icon="solar:add-circle-linear" width="20" height="20" />
+            </button>
+          </div>
         </div>
       </div>
 
