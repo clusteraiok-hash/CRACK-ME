@@ -152,20 +152,47 @@ export function AppProvider({ children }: AppProviderProps) {
       if (today !== lastResetDate) {
         setLastResetDate(today);
         
-        if (syncStatus === 'offline' || syncStatus === 'error') {
-          addToast('info', 'New day! Using local data.');
-          return;
-        }
-        
         try {
-          const tasksRes = await supabase.from('daily_tasks').select('*');
-          const todayTasks = tasksRes.data?.filter(t => t.assignedDate === today) || [];
-          
-          if (todayTasks.length > 0) {
-            setDailyTasks(todayTasks);
-            addToast('info', 'New day! Your daily routine has been refreshed.');
+          if (syncStatus === 'offline' || syncStatus === 'error') {
+            setDailyTasks(prev => prev.map(t => ({
+              ...t, 
+              id: crypto.randomUUID(), 
+              done: false, 
+              subtasks: (t.subtasks || []).map(s => ({ ...s, done: false })),
+              assignedDate: today
+            })));
+            addToast('info', 'New day! Your daily routine has been reset locally.');
+            return;
           }
-          // If no tasks in Supabase, keep localStorage data
+
+          const { data: dbTasks } = await supabase
+            .from('daily_tasks')
+            .select('*')
+            .eq('assignedDate', today);
+          
+          if (dbTasks && dbTasks.length > 0) {
+            setDailyTasks(dbTasks);
+            addToast('info', 'New day! Your daily routine has been refreshed.');
+          } else {
+            // If no tasks exist for the new day in DB, reset the current ones and clone them
+            setDailyTasks(current => {
+              const resetTasks = current.map(t => ({
+                ...t,
+                id: crypto.randomUUID(),
+                done: false,
+                subtasks: (t.subtasks || []).map(s => ({ ...s, done: false })),
+                assignedDate: today
+              }));
+
+              if (resetTasks.length > 0) {
+                supabase.from('daily_tasks').insert(resetTasks).then(({ error }) => {
+                  if (error) console.error('Routine reset sync error:', error);
+                });
+              }
+              return resetTasks;
+            });
+            addToast('success', 'New day! Daily routine reset for a fresh start.');
+          }
         } catch (err) {
           console.error('Daily reset error:', err);
         }
